@@ -13,7 +13,7 @@ def load_big_dataset():
 
     Version
     -------
-    specification : O.S. (v.1 06/04/2022)
+    specification : J.N. (v.1 06/04/2022)
     implementation : O.S. (v.1 06/04/2022)
     """
     df_train = pd.read_csv('../raw_data/train.csv')
@@ -34,7 +34,7 @@ def feature_date_engineer(df):
 
     Version
     -------
-    specification : O.S. (v.1 06/04/2022)
+    specification : J.N. (v.1 06/04/2022)
     implementation : O.S. (v.1 06/04/2022)
     """
     df['date'] = pd.to_datetime(df['date'])
@@ -56,7 +56,7 @@ def year_to_csv(df, year):
 
     Version
     -------
-    specification : O.S. (v.1 06/04/2022)
+    specification : J.N. (v.1 06/04/2022)
     implementation : O.S. (v.1 06/04/2022)
     """
     df = df[df['year'] == year]
@@ -69,10 +69,13 @@ def produce_csv_by_year():
 
     Version
     -------
-    specification : O.S. (v.1 06/04/2022)
+    specification : J.N. (v.1 06/04/2022)
     implementation : O.S. (v.1 06/04/2022)
     """
     df = load_big_dataset()
     feature_date_engineer(df)
     for i in range(2012, 2018+1):
         year_to_csv(df, i)
+
+if __name__ == '__main__':
+    produce_csv_by_year()
