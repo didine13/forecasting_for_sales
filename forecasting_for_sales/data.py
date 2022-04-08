@@ -222,6 +222,32 @@ def generate_df_holiday(holiday_data, stores_data):
     return df_holiday
 
 def merge_stores(stores_data):
+    """Merge DataFrame stores to add city, state, ...
+    Parameters
+    ----------
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with store content
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    df_sales = df_sales.merge(stores_data, how='left', on='store_nbr')
+
+    # For memory
+    del stores_data
+
+    return df_sales
+
+def merge_df_holiday(df_sales, df_holiday):
     """Generate DataFrame df_holiday to add in df_sales column is_special
     Parameters
     ----------
@@ -240,13 +266,41 @@ def merge_stores(stores_data):
     implementation : J.N. (v.1 08/04/2022)
 
     """
-    df_sales = df_sales.merge(stores_data, how='left', on='store_nbr')
+    # Set to_datetime, important...
+    df_holiday['date'] = pd.to_datetime(df_holiday['date'])
+
+    df_sales = df_sales.merge(df_holiday, how='left', on=['date', 'city'])
 
     # For memory
-    del stores_data
+    del df_holiday
 
     return df_sales
 
+def merge_items(df_sales, items_data):
+    """Merge DataFrame items to add items content
+    Parameters
+    ----------
+    items_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with items content
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    df_sales = df_sales.merge(items_data, how='left', on='item_nbr')
+
+    # For memory
+    del items_data
+
+    return df_sales
 
 
 #
@@ -363,13 +417,14 @@ if __name__ == '__main__':
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
-    # merge sur holiday
+    # traitement des holidays
+    # padding par 0
+
 
     # merge sur store
 
-    # traitement des holidays
+    # merge sur holiday
 
-    # padding par 0
 
     # ---------------------------------------------------------
     print("merged holidays, stores and processed special days")
