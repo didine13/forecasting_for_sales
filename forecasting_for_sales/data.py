@@ -72,7 +72,7 @@ def generate_df_base(df_train):
     implementation : J.N. (v.1 08/04/2022)
 
     """
-    # DataFrame with date
+    # DataFrame with date - TO DO
     rng = pd.date_range(start='2016-01-01', end='2016-03-31')
     df_base = pd.DataFrame({'date': rng})
 
@@ -446,10 +446,6 @@ if __name__ == '__main__':
     # ----- LOADING MAIN DATASET -----
     df = load_big_dataset()
 
-    # ----- FEATURE ENGINEER DATE -----
-    feature_date_engineer(df)
-
-
     # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
@@ -473,23 +469,23 @@ if __name__ == '__main__':
     items = load_items()
     df_sales = merge_items(df_sales, items) # merge items
 
-    # apply datetime and add 4 columns : year month day dayofweek
+    # ----- FEATURE ENGINEER DATE -----
     df_sales = feature_date_engineer(df_sales)
 
 
     # ---------------------------------------------------------
-    print("merged holidays, stores and processed special days")
+    print("merged holidays, items, stores and processed special days")
 
-    # ----- MERGE ITEMS ON MAIN DATASET -----
-    items = load_items()
-    df = df.merge(items)
-    print("loaded items dataset and merged on main dataset")
+    # # ----- MERGE ITEMS ON MAIN DATASET -----
+    # items = load_items()
+    # df_sales = df_sales.merge(items)
+    # print("loaded items dataset and merged on main dataset")
 
     # ----- KEEP ONLY PERISHABLE PRODUCTS AND REMOVE PERISHABLE COLUMN -----
-    df = remove_non_perish(df)
+    df_sales = remove_non_perish(df_sales)
 
     # ----- OPTIMIZE DATA BY DOWNCASTING NUMERIC FEATURES -----
-    df = df_optimized(df)
+    df_sales = df_optimized(df_sales)
 
     # ----- CLEAN DATA AND CLEAN ITEMS -----
 
@@ -498,7 +494,7 @@ if __name__ == '__main__':
     # ----- DROP DUPLICATES (ROWS) -----
 
     # ----- REPLACING OUTLIER VALUES BY NaN, INTERPOLATE AND SCALE -----
-    df = remove_outlier(df, np.nan)
+    df_sales = remove_outlier(df_sales, np.nan)
 
     # ----- DOWNCAST AGAIN ??? -----
 
