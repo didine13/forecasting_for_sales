@@ -180,4 +180,6 @@ if __name__ == '__main__':
     # ----- REPLACING OUTLIER VALUES BY NaN, INTERPOLATE AND SCALE -----
     df = remove_outlier(df, np.nan)
 
+    # ----- DOWNCAST AGAIN ??? -----
+
     print("--- %s seconds ---" % (time.time() - start_time)) #print the timing
