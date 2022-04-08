@@ -94,7 +94,7 @@ def generate_df_base(df_train):
     return df_base
 
 def generate_df_sales(df_base, df_train):
-    """Generat DataFrame which contains the base to prepare dataset preproc
+    """Generate new DataFrame which contains sales
     Parameters
     ----------
     df_base : DataFrame pandas generated with generate_df_base()
@@ -102,7 +102,7 @@ def generate_df_sales(df_base, df_train):
 
     Returns
     -------
-    df_sales : DataFrame with date by store_nbr by item_nbr
+    df_sales : DataFrame updated with unit_sales
 
     Notes
     -----
@@ -122,7 +122,131 @@ def generate_df_sales(df_base, df_train):
     # Replace NaN by 0 (no unit_sales)
     df_sales['unit_sales'] = df_sales['unit_sales'].fillna(0)
 
+    # For memory
+    del df_base
+
     return df_sales
+
+def merge_df_open(df_sales):
+    """Update DataFrame which contains if stores open or not
+    Parameters
+    ----------
+    df_sales : DataFrame with date by store_nbr by item_nbr...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with column is_open
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # keep only 3 columns by ['date', 'store_nbr']
+    df_open = df_sales[['date', 'store_nbr', 'unit_sales']]\
+                        .groupby(by=['date', 'store_nbr'])\
+                        .sum()\
+                        .reset_index(inplace=True)
+
+    # Set True/False in column 'is_open'
+    df_open['is_open'] = (df_open['unit_sales'] != 0)
+
+    df_sales = df_sales.merge(df_open[['date', 'store_nbr', 'is_open']],
+                              how='left', on=['date', 'store_nbr'])
+
+    # For memory
+    del df_open
+
+    return df_sales
+
+def generate_df_holiday(holiday_data, stores_data):
+    """Generate DataFrame df_holiday to add in df_sales column is_special
+    Parameters
+    ----------
+    holiday_data : DataFrame contains Event, Holiday, Bridge, Work Day, Transfer
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_holiday : DataFrame which contains date, type, city, is_special
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # Drop columns not useful
+    holiday_data.drop(columns=['description', 'transferred'], inplace=True)
+    # Create city_state with stores
+    city_state = stores_data[['city', 'state']].drop_duplicates()
+
+    # Prepare Local
+    local_holiday = holiday_data[holiday_data.locale == 'Local']
+        # new column city in local_holiday, useful for merging
+    local_holiday['city'] = local_holiday['locale_name']
+
+    # Prepare Regional
+    regional_holiday = holiday_data.loc[holiday_data.locale == 'Regional']
+    regional_holiday = regional_holiday.merge(city_state,
+                                              left_on='locale_name',
+                                              right_on='state')
+        # State not useful for merging
+    regional_holiday.drop(columns='state', inplace=True)
+
+    # Prepare National
+    national_holiday = holiday_data.loc[holiday_data.locale == 'National']
+        # Add column country in city_state to merge easily after
+    city_state['country'] = 'Ecuador'
+    national_holiday = national_holiday.merge(city_state,
+                                              left_on='locale_name',
+                                              right_on='country')
+    # Not useful
+    national_holiday.drop(columns=['state', 'country'], inplace=True)
+
+    # Regroup 3 locales
+    df_holiday = pd.concat([local_holiday,
+                            regional_holiday,
+                            national_holiday])[['date', 'type', 'city']]\
+                                .drop_duplicates()
+    df_holiday['is_special'] = 1 # all holiday is special
+
+
+    return df_holiday
+
+def merge_stores(stores_data):
+    """Generate DataFrame df_holiday to add in df_sales column is_special
+    Parameters
+    ----------
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with ..., is_special
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    df_sales = df_sales.merge(stores_data, how='left', on='store_nbr')
+
+    # For memory
+    del stores_data
+
+    return df_sales
+
 
 
 #
