@@ -464,8 +464,8 @@ if __name__ == '__main__':
 
     # traitement des holidays
     # padding par 0
-    holidays = load_csv('holidays_events_v2')
-    stores = load_csv('stores')
+    holidays = load_csv('holidays_events_v2') # load holidays
+    stores = load_csv('stores') # load stores
 
     df_holiday = generate_df_holiday(holidays, stores)
     # merge sur store
@@ -474,7 +474,7 @@ if __name__ == '__main__':
     # merge sur holiday
     df_sales = merge_df_holiday(df_sales, holidays)
 
-    items = load_csv('items')
+    items = load_csv('items') # load items
     df_sales = merge_items(df_sales, items) # merge items
 
     # ----- FEATURE ENGINEER DATE -----
