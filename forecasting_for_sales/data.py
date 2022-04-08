@@ -51,6 +51,82 @@ def feature_date_engineer(df):
     print("added time features engineered")
     return df
 
+#
+
+def generate_df_base(df_train):
+    """Generat DataFrame which are the base to prepare dataset preproc
+    Parameters
+    ----------
+    df_train : DataFrame pandas of train.csv
+
+    Returns
+    -------
+    df_base : DataFrame with date by store_nbr by item_nbr
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # DataFrame with date
+    rng = pd.date_range(start='2016-01-01', end='2016-03-31')
+    df_base = pd.DataFrame({'date': rng})
+
+    # DataFrame with store_nbr
+    store_nbr_series = df_train['store_nbr'].unique()
+    df_all_store = pd.DataFrame({'store_nbr': store_nbr_series})
+
+    df_base = df_base.merge(df_all_store, how='cross')
+
+    # DataFrame with item_nbr
+    item_nbr_series = df_train['item_nbr'].unique()
+    df_item = pd.DataFrame({'item_nbr': item_nbr_series})
+
+    df_base = df_base.merge(df_item, how='cross')
+
+    # For memory
+    del df_all_store, df_item
+
+    return df_base
+
+def generate_df_sales(df_base, df_train):
+    """Generat DataFrame which contains the base to prepare dataset preproc
+    Parameters
+    ----------
+    df_base : DataFrame pandas generated with generate_df_base()
+    df_train : DataFrame pandas of train.csv
+
+    Returns
+    -------
+    df_sales : DataFrame with date by store_nbr by item_nbr
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # Set to_datetime, by precaution
+    df_base['date'] = pd.to_datetime(df_base['date'])
+    df_train['date'] = pd.to_datetime(df_train['date'])
+
+    df_sales = df_base.merge(df_train, how='left', on=['date', 'store_nbr', 'item_nbr'])
+
+    # Replace NaN by 0 (no unit_sales)
+    df_sales['unit_sales'] = df_sales['unit_sales'].fillna(0)
+
+    return df_sales
+
+
+#
+
 def load_items():
     """
     Load items csv
@@ -158,13 +234,20 @@ if __name__ == '__main__':
     # ----- FEATURE ENGINEER DATE -----
     feature_date_engineer(df)
 
+
+    # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
     # merge sur holiday
+
     # merge sur store
+
     # traitement des holidays
+
     # padding par 0
+
+    # ---------------------------------------------------------
     print("merged holidays, stores and processed special days")
 
     # ----- MERGE ITEMS ON MAIN DATASET -----
