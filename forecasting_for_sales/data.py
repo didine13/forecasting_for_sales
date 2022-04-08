@@ -91,6 +91,11 @@ def remove_outlier(df, replacement_value):
     print(f"replaced outliers by {replacement_value}")
     return df
 
+def remove_non_perish(df):
+    df = df[df['perishable']==1]
+    df.drop('perishable', axis=1, inplace=True)
+    print("removed non-perishable products and removed perishable column")
+
 def year_to_csv(df, year): # fonction a ne plus utiliser
     """Extract and save in new file.csv, this year's data
     Parameters
@@ -147,10 +152,12 @@ if __name__ == '__main__':
     feature_date_engineer(df)
 
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
+    # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
     # merge sur holiday
     # merge sur store
     # traitement des holidays
+    # padding par 0
     print("merged holidays, stores and processed special days")
 
     # ----- MERGE ITEMS ON MAIN DATASET -----
@@ -159,9 +166,7 @@ if __name__ == '__main__':
     print("loaded items dataset and merged on main dataset")
 
     # ----- KEEP ONLY PERISHABLE PRODUCTS AND REMOVE PERISHABLE COLUMN -----
-    df = df[df['perishable']==1]
-    df.drop('perishable', axis=1, inplace=True)
-    print("removed non-perishable products and removed perishable column")
+    df = remove_non_perish(df)
 
     # ----- OPTIMIZE DATA BY DOWNCASTING NUMERIC FEATURES -----
     df = df_optimized(df)
@@ -172,9 +177,7 @@ if __name__ == '__main__':
 
     # ----- DROP DUPLICATES (ROWS) -----
 
-    # ----- REPLACING OUTLIER VALUES BY NaN -----
+    # ----- REPLACING OUTLIER VALUES BY NaN, INTERPOLATE AND SCALE -----
     df = remove_outlier(df, np.nan)
-
-    # ----- PAD AND INTERPOLATE -----
 
     print("--- %s seconds ---" % (time.time() - start_time)) #print the timing
