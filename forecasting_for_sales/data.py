@@ -51,7 +51,7 @@ def feature_date_engineer(df):
     print("added time features engineered")
     return df
 
-#
+# # Begin for data-preparation_for-preproc
 
 def generate_df_base(df_train):
     """Generat DataFrame which are the base to prepare dataset preproc
@@ -270,6 +270,8 @@ def merge_df_holiday(df_sales, df_holiday):
     df_holiday['date'] = pd.to_datetime(df_holiday['date'])
 
     df_sales = df_sales.merge(df_holiday, how='left', on=['date', 'city'])
+    # Replace NaN by 0
+    df_sales['is_special'].fillna(0, inplace=True)
 
     # For memory
     del df_holiday
@@ -302,8 +304,43 @@ def merge_items(df_sales, items_data):
 
     return df_sales
 
+def load_holiday_events():
+    """Load holiday_events_vs.csv
+    Returns
+    -------
+    holiday_data : DataFrame holidays
 
-#
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    holiday_data = pd.read_csv('../raw_data/holidays_events_v2.csv')
+    return holiday_data
+
+def load_stores():
+    """Load stores.csv
+    Returns
+    -------
+    df_sales : DataFrame stores
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    stores_data = pd.read_csv('../raw_data/stores.csv')
+    return stores_data
+
+# End for data-preparation_for-preproc
 
 def load_items():
     """
@@ -417,13 +454,27 @@ if __name__ == '__main__':
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
+    df_base = generate_df_base(df)
+    df_sales = generate_df_sales(df_base)
+    df_sales = merge_df_open(df_sales)
+
+
     # traitement des holidays
     # padding par 0
+    holidays = load_holiday_events()
+    stores = load_stores()
 
-
+    df_holiday = generate_df_holiday(holidays, stores)
     # merge sur store
+    df_sales = merge_stores(stores)
 
     # merge sur holiday
+    df_sales = merge_df_holiday(df_sales, holidays)
+
+    df_sales = merge_items(df_sales) # merge items
+
+    # apply datetime and add 4 columns : year month day dayofweek
+    df_sales = feature_date_engineer(df_sales)
 
 
     # ---------------------------------------------------------
