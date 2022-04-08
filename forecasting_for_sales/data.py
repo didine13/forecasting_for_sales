@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import time
 
+from xgboost import train
+
 def load_big_dataset():
     """Get data from local (raw_data)
 
@@ -54,7 +56,9 @@ def feature_date_engineer(df):
 # # Begin for data-preparation_for-preproc
 
 def generate_df_base(df_train):
-    """Generat DataFrame which are the base to prepare dataset preproc
+    """Generate DataFrame which are the base to prepare dataset preproc
+    Start='2013-01-01', end='2017-08-15' (train.csv)
+    In the end, delete variable df_all_store, df_item
     Parameters
     ----------
     df_train : DataFrame pandas of train.csv
@@ -72,8 +76,8 @@ def generate_df_base(df_train):
     implementation : J.N. (v.1 08/04/2022)
 
     """
-    # DataFrame with date
-    rng = pd.date_range(start='2016-01-01', end='2016-03-31')
+    # DataFrame with date - TO DO
+    rng = pd.date_range(start='2013-01-01', end='2017-08-15')
     df_base = pd.DataFrame({'date': rng})
 
     # DataFrame with store_nbr
@@ -129,6 +133,7 @@ def generate_df_sales(df_base, df_train):
 
 def merge_df_open(df_sales):
     """Update DataFrame which contains if stores open or not
+    In the end, delete df_open
     Parameters
     ----------
     df_sales : DataFrame with date by store_nbr by item_nbr...
@@ -162,6 +167,28 @@ def merge_df_open(df_sales):
     del df_open
 
     return df_sales
+
+def prepare_df_sales(df):
+    """3 Steps (3functions) : generate df_base -> df_sales which merge with df_open (which prepared)
+    Parameters
+    ----------
+    df_sales : DataFrame with date by store_nbr by item_nbr...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with column is_open
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+    """
+    df_base = generate_df_base(df)
+    df_sales = generate_df_sales(df_base)
+    df_sales = merge_df_open(df_sales)
 
 def generate_df_holiday(holiday_data, stores_data):
     """Generate DataFrame df_holiday to add in df_sales column is_special
@@ -223,6 +250,7 @@ def generate_df_holiday(holiday_data, stores_data):
 
 def merge_stores(stores_data):
     """Merge DataFrame stores to add city, state, ...
+    In the end, delete variable store_data
     Parameters
     ----------
     stores_data : DataFrame with store_nbr, city, state, ...
@@ -249,6 +277,7 @@ def merge_stores(stores_data):
 
 def merge_df_holiday(df_sales, df_holiday):
     """Generate DataFrame df_holiday to add in df_sales column is_special
+    In the end, delete variable df_holiday
     Parameters
     ----------
     stores_data : DataFrame with store_nbr, city, state, ...
@@ -280,6 +309,7 @@ def merge_df_holiday(df_sales, df_holiday):
 
 def merge_items(df_sales, items_data):
     """Merge DataFrame items to add items content
+    In the end, delete variable items_data
     Parameters
     ----------
     items_data : DataFrame with store_nbr, city, state, ...
@@ -304,50 +334,29 @@ def merge_items(df_sales, items_data):
 
     return df_sales
 
-def load_holiday_events():
-    """Load holiday_events_vs.csv
+
+def load_csv(name_file):
+    """Load csv
+    Parameters
+    ----------
+    name_file : name of file - String
+
     Returns
     -------
-    holiday_data : DataFrame holidays
+    pandas.DataFrame : df of your file
 
     Notes
     -----
+    Functions which regroup all load
+    functions implemented individually (bad)
+    Don't forget to check your folder /raw_data or /data
 
     Version
     -------
     specification : J.N. (v.1 08/04/2022)
-    implementation : J.N. (v.1 08/04/2022)
-
+    implementation : O.S. ; J.N. (v.1 08/04/2022)
     """
-    holiday_data = pd.read_csv('../raw_data/holidays_events_v2.csv')
-    return holiday_data
-
-def load_stores():
-    """Load stores.csv
-    Returns
-    -------
-    df_sales : DataFrame stores
-
-    Notes
-    -----
-
-    Version
-    -------
-    specification : J.N. (v.1 08/04/2022)
-    implementation : J.N. (v.1 08/04/2022)
-
-    """
-    stores_data = pd.read_csv('../raw_data/stores.csv')
-    return stores_data
-
-# End for data-preparation_for-preproc
-
-def load_items():
-    """
-    Load items csv
-    """
-    items = pd.read_csv('../raw_data/items.csv')
-    return items
+    return pd.read_csv(f'../raw_data/{name_file}.csv')
 
 def df_optimized(df, verbose=True, **kwargs):
     """
@@ -433,7 +442,7 @@ def produce_csv_by_year_perishable(): # fonction a ne plus utiliser
     """
     df = load_big_dataset()
     feature_date_engineer(df)
-    items = load_items()
+    items = load_csv('items')
     df = df.merge(items)
     df = df[df['perishable']==1]
     for i in range(2013, 2017+1):
@@ -444,24 +453,19 @@ if __name__ == '__main__':
     start_time = time.time() #set the beginning of the timer for the execution
 
     # ----- LOADING MAIN DATASET -----
-    df = load_big_dataset()
-
-    # ----- FEATURE ENGINEER DATE -----
-    feature_date_engineer(df)
-
+    df = load_csv('train')
+    print("dataset loaded")
 
     # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
-    df_base = generate_df_base(df)
-    df_sales = generate_df_sales(df_base)
-    df_sales = merge_df_open(df_sales)
+    df_sales = prepare_df_sales(df)
 
     # traitement des holidays
     # padding par 0
-    holidays = load_holiday_events()
-    stores = load_stores()
+    holidays = load_csv('holidays_events_v2') # load holidays
+    stores = load_csv('stores') # load stores
 
     df_holiday = generate_df_holiday(holidays, stores)
     # merge sur store
@@ -470,26 +474,26 @@ if __name__ == '__main__':
     # merge sur holiday
     df_sales = merge_df_holiday(df_sales, holidays)
 
-    items = load_items()
+    items = load_csv('items') # load items
     df_sales = merge_items(df_sales, items) # merge items
 
-    # apply datetime and add 4 columns : year month day dayofweek
+    # ----- FEATURE ENGINEER DATE -----
     df_sales = feature_date_engineer(df_sales)
 
 
     # ---------------------------------------------------------
-    print("merged holidays, stores and processed special days")
+    print("merged holidays, items, stores and processed special days")
 
-    # ----- MERGE ITEMS ON MAIN DATASET -----
-    items = load_items()
-    df = df.merge(items)
-    print("loaded items dataset and merged on main dataset")
+    # # ----- MERGE ITEMS ON MAIN DATASET -----
+    # items = load_csv('items')
+    # df_sales = df_sales.merge(items)
+    # print("loaded items dataset and merged on main dataset")
 
     # ----- KEEP ONLY PERISHABLE PRODUCTS AND REMOVE PERISHABLE COLUMN -----
-    df = remove_non_perish(df)
+    df_sales = remove_non_perish(df_sales)
 
     # ----- OPTIMIZE DATA BY DOWNCASTING NUMERIC FEATURES -----
-    df = df_optimized(df)
+    df_sales = df_optimized(df_sales)
 
     # ----- CLEAN DATA AND CLEAN ITEMS -----
 
@@ -498,7 +502,7 @@ if __name__ == '__main__':
     # ----- DROP DUPLICATES (ROWS) -----
 
     # ----- REPLACING OUTLIER VALUES BY NaN, INTERPOLATE AND SCALE -----
-    df = remove_outlier(df, np.nan)
+    df_sales = remove_outlier(df_sales, np.nan)
 
     # ----- DOWNCAST AGAIN ??? -----
 
