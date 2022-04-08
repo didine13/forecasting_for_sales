@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import time
 
+from xgboost import train
+
 def load_big_dataset():
     """Get data from local (raw_data)
 
@@ -54,7 +56,8 @@ def feature_date_engineer(df):
 # # Begin for data-preparation_for-preproc
 
 def generate_df_base(df_train):
-    """Generat DataFrame which are the base to prepare dataset preproc
+    """Generate DataFrame which are the base to prepare dataset preproc
+    Start='2013-01-01', end='2017-08-15' (train.csv)
     Parameters
     ----------
     df_train : DataFrame pandas of train.csv
@@ -73,7 +76,7 @@ def generate_df_base(df_train):
 
     """
     # DataFrame with date - TO DO
-    rng = pd.date_range(start='2016-01-01', end='2016-03-31')
+    rng = pd.date_range(start='2013-01-01', end='2017-08-15')
     df_base = pd.DataFrame({'date': rng})
 
     # DataFrame with store_nbr
@@ -162,6 +165,28 @@ def merge_df_open(df_sales):
     del df_open
 
     return df_sales
+
+def prepare_df_sales(df):
+    """3 Steps (3functions) : generate df_base -> df_sales which merge with df_open (which prepared)
+    Parameters
+    ----------
+    df_sales : DataFrame with date by store_nbr by item_nbr...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with column is_open
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+    """
+    df_base = generate_df_base(df)
+    df_sales = generate_df_sales(df_base)
+    df_sales = merge_df_open(df_sales)
 
 def generate_df_holiday(holiday_data, stores_data):
     """Generate DataFrame df_holiday to add in df_sales column is_special
@@ -349,6 +374,29 @@ def load_items():
     items = pd.read_csv('../raw_data/items.csv')
     return items
 
+def load_csv(name_file):
+    """Load csv
+    Parameters
+    ----------
+    name_file : name of file - String
+
+    Returns
+    -------
+    pandas.DataFrame : df of your file
+
+    Notes
+    -----
+    Functions which regroup all load
+    functions implemented individually (bad)
+    Don't forget to check your folder /raw_data or /data
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : O.S. ; J.N. (v.1 08/04/2022)
+    """
+    return pd.read_csv(f'../raw_data/{name_file}.csv')
+
 def df_optimized(df, verbose=True, **kwargs):
     """
     Reduces size of dataframe by downcasting numerical columns
@@ -444,20 +492,19 @@ if __name__ == '__main__':
     start_time = time.time() #set the beginning of the timer for the execution
 
     # ----- LOADING MAIN DATASET -----
-    df = load_big_dataset()
+    df = load_csv('train')
+    print("dataset loaded")
 
     # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
-    df_base = generate_df_base(df)
-    df_sales = generate_df_sales(df_base)
-    df_sales = merge_df_open(df_sales)
+    df_sales = prepare_df_sales(df)
 
     # traitement des holidays
     # padding par 0
-    holidays = load_holiday_events()
-    stores = load_stores()
+    holidays = load_csv('holidays_events_v2')
+    stores = load_csv('stores')
 
     df_holiday = generate_df_holiday(holidays, stores)
     # merge sur store
@@ -466,7 +513,7 @@ if __name__ == '__main__':
     # merge sur holiday
     df_sales = merge_df_holiday(df_sales, holidays)
 
-    items = load_items()
+    items = load_csv('items')
     df_sales = merge_items(df_sales, items) # merge items
 
     # ----- FEATURE ENGINEER DATE -----
