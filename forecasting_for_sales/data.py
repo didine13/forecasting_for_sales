@@ -51,6 +51,297 @@ def feature_date_engineer(df):
     print("added time features engineered")
     return df
 
+# # Begin for data-preparation_for-preproc
+
+def generate_df_base(df_train):
+    """Generat DataFrame which are the base to prepare dataset preproc
+    Parameters
+    ----------
+    df_train : DataFrame pandas of train.csv
+
+    Returns
+    -------
+    df_base : DataFrame with date by store_nbr by item_nbr
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # DataFrame with date
+    rng = pd.date_range(start='2016-01-01', end='2016-03-31')
+    df_base = pd.DataFrame({'date': rng})
+
+    # DataFrame with store_nbr
+    store_nbr_series = df_train['store_nbr'].unique()
+    df_all_store = pd.DataFrame({'store_nbr': store_nbr_series})
+
+    df_base = df_base.merge(df_all_store, how='cross')
+
+    # DataFrame with item_nbr
+    item_nbr_series = df_train['item_nbr'].unique()
+    df_item = pd.DataFrame({'item_nbr': item_nbr_series})
+
+    df_base = df_base.merge(df_item, how='cross')
+
+    # For memory
+    del df_all_store, df_item
+
+    return df_base
+
+def generate_df_sales(df_base, df_train):
+    """Generate new DataFrame which contains sales
+    Parameters
+    ----------
+    df_base : DataFrame pandas generated with generate_df_base()
+    df_train : DataFrame pandas of train.csv
+
+    Returns
+    -------
+    df_sales : DataFrame updated with unit_sales
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # Set to_datetime, by precaution
+    df_base['date'] = pd.to_datetime(df_base['date'])
+    df_train['date'] = pd.to_datetime(df_train['date'])
+
+    df_sales = df_base.merge(df_train, how='left', on=['date', 'store_nbr', 'item_nbr'])
+
+    # Replace NaN by 0 (no unit_sales)
+    df_sales['unit_sales'] = df_sales['unit_sales'].fillna(0)
+
+    # For memory
+    del df_base
+
+    return df_sales
+
+def merge_df_open(df_sales):
+    """Update DataFrame which contains if stores open or not
+    Parameters
+    ----------
+    df_sales : DataFrame with date by store_nbr by item_nbr...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with column is_open
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # keep only 3 columns by ['date', 'store_nbr']
+    df_open = df_sales[['date', 'store_nbr', 'unit_sales']]\
+                        .groupby(by=['date', 'store_nbr'])\
+                        .sum()\
+                        .reset_index(inplace=True)
+
+    # Set True/False in column 'is_open'
+    df_open['is_open'] = (df_open['unit_sales'] != 0)
+
+    df_sales = df_sales.merge(df_open[['date', 'store_nbr', 'is_open']],
+                              how='left', on=['date', 'store_nbr'])
+
+    # For memory
+    del df_open
+
+    return df_sales
+
+def generate_df_holiday(holiday_data, stores_data):
+    """Generate DataFrame df_holiday to add in df_sales column is_special
+    Parameters
+    ----------
+    holiday_data : DataFrame contains Event, Holiday, Bridge, Work Day, Transfer
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_holiday : DataFrame which contains date, type, city, is_special
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # Drop columns not useful
+    holiday_data.drop(columns=['description', 'transferred'], inplace=True)
+    # Create city_state with stores
+    city_state = stores_data[['city', 'state']].drop_duplicates()
+
+    # Prepare Local
+    local_holiday = holiday_data[holiday_data.locale == 'Local']
+        # new column city in local_holiday, useful for merging
+    local_holiday['city'] = local_holiday['locale_name']
+
+    # Prepare Regional
+    regional_holiday = holiday_data.loc[holiday_data.locale == 'Regional']
+    regional_holiday = regional_holiday.merge(city_state,
+                                              left_on='locale_name',
+                                              right_on='state')
+        # State not useful for merging
+    regional_holiday.drop(columns='state', inplace=True)
+
+    # Prepare National
+    national_holiday = holiday_data.loc[holiday_data.locale == 'National']
+        # Add column country in city_state to merge easily after
+    city_state['country'] = 'Ecuador'
+    national_holiday = national_holiday.merge(city_state,
+                                              left_on='locale_name',
+                                              right_on='country')
+    # Not useful
+    national_holiday.drop(columns=['state', 'country'], inplace=True)
+
+    # Regroup 3 locales
+    df_holiday = pd.concat([local_holiday,
+                            regional_holiday,
+                            national_holiday])[['date', 'type', 'city']]\
+                                .drop_duplicates()
+    df_holiday['is_special'] = 1 # all holiday is special
+
+
+    return df_holiday
+
+def merge_stores(stores_data):
+    """Merge DataFrame stores to add city, state, ...
+    Parameters
+    ----------
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with store content
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    df_sales = df_sales.merge(stores_data, how='left', on='store_nbr')
+
+    # For memory
+    del stores_data
+
+    return df_sales
+
+def merge_df_holiday(df_sales, df_holiday):
+    """Generate DataFrame df_holiday to add in df_sales column is_special
+    Parameters
+    ----------
+    stores_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with ..., is_special
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    # Set to_datetime, important...
+    df_holiday['date'] = pd.to_datetime(df_holiday['date'])
+
+    df_sales = df_sales.merge(df_holiday, how='left', on=['date', 'city'])
+    # Replace NaN by 0
+    df_sales['is_special'].fillna(0, inplace=True)
+
+    # For memory
+    del df_holiday
+
+    return df_sales
+
+def merge_items(df_sales, items_data):
+    """Merge DataFrame items to add items content
+    Parameters
+    ----------
+    items_data : DataFrame with store_nbr, city, state, ...
+
+    Returns
+    -------
+    df_sales : DataFrame updated with items content
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    df_sales = df_sales.merge(items_data, how='left', on='item_nbr')
+
+    # For memory
+    del items_data
+
+    return df_sales
+
+def load_holiday_events():
+    """Load holiday_events_vs.csv
+    Returns
+    -------
+    holiday_data : DataFrame holidays
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    holiday_data = pd.read_csv('../raw_data/holidays_events_v2.csv')
+    return holiday_data
+
+def load_stores():
+    """Load stores.csv
+    Returns
+    -------
+    df_sales : DataFrame stores
+
+    Notes
+    -----
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : J.N. (v.1 08/04/2022)
+
+    """
+    stores_data = pd.read_csv('../raw_data/stores.csv')
+    return stores_data
+
+# End for data-preparation_for-preproc
+
 def load_items():
     """
     Load items csv
@@ -158,13 +449,35 @@ if __name__ == '__main__':
     # ----- FEATURE ENGINEER DATE -----
     feature_date_engineer(df)
 
+
+    # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
-    # merge sur holiday
-    # merge sur store
+    df_base = generate_df_base(df)
+    df_sales = generate_df_sales(df_base)
+    df_sales = merge_df_open(df_sales)
+
     # traitement des holidays
     # padding par 0
+    holidays = load_holiday_events()
+    stores = load_stores()
+
+    df_holiday = generate_df_holiday(holidays, stores)
+    # merge sur store
+    df_sales = merge_stores(stores)
+
+    # merge sur holiday
+    df_sales = merge_df_holiday(df_sales, holidays)
+
+    items = load_items()
+    df_sales = merge_items(df_sales, items) # merge items
+
+    # apply datetime and add 4 columns : year month day dayofweek
+    df_sales = feature_date_engineer(df_sales)
+
+
+    # ---------------------------------------------------------
     print("merged holidays, stores and processed special days")
 
     # ----- MERGE ITEMS ON MAIN DATASET -----
