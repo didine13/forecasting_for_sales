@@ -458,7 +458,6 @@ if __name__ == '__main__':
     df_sales = generate_df_sales(df_base)
     df_sales = merge_df_open(df_sales)
 
-
     # traitement des holidays
     # padding par 0
     holidays = load_holiday_events()
@@ -471,7 +470,8 @@ if __name__ == '__main__':
     # merge sur holiday
     df_sales = merge_df_holiday(df_sales, holidays)
 
-    df_sales = merge_items(df_sales) # merge items
+    items = load_items()
+    df_sales = merge_items(df_sales, items) # merge items
 
     # apply datetime and add 4 columns : year month day dayofweek
     df_sales = feature_date_engineer(df_sales)
