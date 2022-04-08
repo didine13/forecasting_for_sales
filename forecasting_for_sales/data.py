@@ -168,11 +168,11 @@ def merge_df_open(df_sales):
 
     return df_sales
 
-def prepare_df_sales(df):
+def prepare_df_sales(df_train):
     """3 Steps (3functions) : generate df_base -> df_sales which merge with df_open (which prepared)
     Parameters
     ----------
-    df_sales : DataFrame with date by store_nbr by item_nbr...
+    df_train : DataFrame train
 
     Returns
     -------
@@ -186,9 +186,11 @@ def prepare_df_sales(df):
     specification : J.N. (v.1 08/04/2022)
     implementation : J.N. (v.1 08/04/2022)
     """
-    df_base = generate_df_base(df)
-    df_sales = generate_df_sales(df_base)
+    df_base = generate_df_base(df_train)
+    df_sales = generate_df_sales(df_base, df_train)
     df_sales = merge_df_open(df_sales)
+
+    return df_sales
 
 def generate_df_holiday(holiday_data, stores_data):
     """Generate DataFrame df_holiday to add in df_sales column is_special
