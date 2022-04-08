@@ -129,9 +129,16 @@ def produce_csv_by_year(): # fonction a ne plus utiliser
     for i in range(2013, 2017+1):
         year_to_csv(df, i)
 
+
 def produce_csv_by_year_perishable(): # fonction a ne plus utiliser
-    """
-    produce csv by year keeping only perishable products
+    """Produce csv by year keeping only perishable products
+    Notes
+    -----
+
+    Version
+    -------
+    specification : O.S. (v.1 07/04/2022)
+    implementation : O.S. (v.1 07/04/2022)
     """
     df = load_big_dataset()
     feature_date_engineer(df)
