@@ -250,11 +250,12 @@ def generate_df_holiday(holiday_data, stores_data):
 
     return df_holiday
 
-def merge_stores(stores_data):
+def merge_stores(df_sales, stores_data):
     """Merge DataFrame stores to add city, state, ...
     In the end, delete variable store_data
     Parameters
     ----------
+    df_sales : DataFrame created with prepare_df_sales()
     stores_data : DataFrame with store_nbr, city, state, ...
 
     Returns
@@ -471,7 +472,7 @@ if __name__ == '__main__':
 
     df_holiday = generate_df_holiday(holidays, stores)
     # merge sur store
-    df_sales = merge_stores(stores)
+    df_sales = merge_stores(df_sales, stores)
 
     # merge sur holiday
     df_sales = merge_df_holiday(df_sales, holidays)
