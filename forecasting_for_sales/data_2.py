@@ -200,7 +200,7 @@ def generate_df_holiday(holiday_data, stores_data):
     # Prepare Local
     local_holiday = holiday_data.loc[holiday_data['locale'] == 'Local'] # dernier-------------------
         # new column city in local_holiday, useful for merging
-    local_holiday[:, 'city'] = local_holiday[:, 'locale_name']
+    local_holiday['city'] = local_holiday['locale_name']
 
     # Prepare Regional
     regional_holiday = holiday_data.loc[holiday_data['locale'] == 'Regional']
