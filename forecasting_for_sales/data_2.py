@@ -198,12 +198,12 @@ def generate_df_holiday(holiday_data, stores_data):
     city_state = stores_data[['city', 'state']].drop_duplicates()
 
     # Prepare Local
-    local_holiday = holiday_data.loc[holiday_data.locale == 'Local'] # dernier-------------------
+    local_holiday = holiday_data.loc[holiday_data['locale'] == 'Local'] # dernier-------------------
         # new column city in local_holiday, useful for merging
-    local_holiday['city'] = local_holiday['locale_name']
+    local_holiday[:, 'city'] = local_holiday[:, 'locale_name']
 
     # Prepare Regional
-    regional_holiday = holiday_data.loc[holiday_data.locale == 'Regional']
+    regional_holiday = holiday_data.loc[holiday_data['locale'] == 'Regional']
     regional_holiday = regional_holiday.merge(city_state,
                                               left_on='locale_name',
                                               right_on='state')
@@ -211,7 +211,7 @@ def generate_df_holiday(holiday_data, stores_data):
     regional_holiday.drop(columns='state', inplace=True)
 
     # Prepare National
-    national_holiday = holiday_data.loc[holiday_data.locale == 'National']
+    national_holiday = holiday_data.loc[holiday_data['locale'] == 'National']
         # Add column country in city_state to merge easily after
     city_state['country'] = 'Ecuador'
     national_holiday = national_holiday.merge(city_state,
@@ -381,6 +381,7 @@ if __name__ == '__main__':
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
     # jonathan
     df_sales = prepare_df_sales(df)
+    df_sales = df_optimized(df_sales)
 
     # traitement des holidays
     # padding par 0
