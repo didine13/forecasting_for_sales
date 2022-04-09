@@ -6,6 +6,10 @@ import pandas as pd
 import numpy as np
 import time
 
+import datetime
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import mean_squared_log_error
+
 from xgboost import train
 
 def load_big_dataset():
@@ -44,13 +48,19 @@ def feature_date_engineer(df):
     -------
     specification : J.N. (v.1 06/04/2022)
     implementation : O.S. (v.1 06/04/2022)
+    modification: E.M. (v.1 06/04/2022)
     """
     df['date'] = pd.to_datetime(df['date'])
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.month
     df['day'] = df['date'].dt.day
     df['day_of_week'] = df['date'].dt.dayofweek
-    print("added time features engineered")
+
+    # Create julian day column
+    df['juliandate'] = df['date'].dt.strftime('%y%m%j')
+
+    print("added time features engineered and julian day")
+
     return df
 
 # # Begin for data-preparation_for-preproc
@@ -328,8 +338,13 @@ def merge_items(df_sales, items_data):
     -------
     specification : J.N. (v.1 08/04/2022)
     implementation : J.N. (v.1 08/04/2022)
-
+    Modification: E.M (v.1 09/04/2022)
     """
+    # clean items before merging and select only perishables
+    items_data['perishable'].fillna(1,inplace=True)
+    items_data = items_data[items_data['perishable'] == 1]
+    print(f'Clean items OK')
+
     df_sales = df_sales.merge(items_data, how='left', on='item_nbr')
 
     # For memory
@@ -452,12 +467,105 @@ def produce_csv_by_year_perishable(): # fonction a ne plus utiliser
         year_to_csv(df, i)
 
 
+def clean_setdata(raw_data):
+    """Clean principal data set
+    Notes
+    -----
+
+    Version
+    -------
+    specification : E.M. (v.1 07/04/2022)
+    implementation : E.M. (v.1 07/04/2022)
+    """
+    # drop duplicate lines
+    raw_data.drop_duplicates(inplace=True)
+
+    # transform date column
+    raw_data['date'] = pd.to_datetime(raw_data['date'])
+
+    # remplace les valeurs nég par la valeur médiane
+    raw_data["unit_sales"] = np.where(raw_data['unit_sales'] < 0, 0, raw_data['unit_sales'])
+
+    # Create julian date column
+    raw_data['juliandate'] = raw_data['date'].dt.strftime('%y%m%j')
+
+    print('Clean data set OK')
+    return raw_data
+
+def delete_unsignificant_stores(data, pourcentage = 0.75):
+    """Delete stores which have les than 25% on total period
+    Notes
+    -----
+
+    Version
+    -------
+    specification : E.M. (v.1 07/04/2022)
+    implementation : E.M. (v.1 07/04/2022)
+    """
+    tab=[]
+    taille_minimale = round(len(data[['date','item_nbr']].groupby('date').count())* pourcentage)
+    for i in data.store_nbr.unique():
+        if len(data[data['store_nbr'] == i][['date','item_nbr']].groupby('date').nunique()) < taille_minimale:
+            data = data[data['store_nbr'] != i]
+            tab.append(i)
+    print(f"Stores with less than {pourcentage*100}% de données : ", tab)
+    return data
+
+def categorical_encoder(data):
+    """Encode categorical data
+    Notes
+    -----
+
+    Version
+    -------
+    specification : E.M. (v.1 07/04/2022)
+    implementation : E.M. (v.1 07/04/2022)
+    """
+
+    categorical_data = data.select_dtypes(include=["bool","object"]).columns
+    for i in categorical_data:
+        # Boolean colums
+        if len(data[i].unique()) == 2:
+            ohe = OneHotEncoder(handle_unknown='ignore', drop='if_binary', sparse = False)
+            data[i] = ohe.fit_transform(data[[i]])
+
+        # Non boolean columns
+        else:
+            ohe = OneHotEncoder()
+            ohe_data = pd.DataFrame(
+                ohe.fit_transform(data[[i]]).toarray(),
+                columns=ohe.get_feature_names(),
+            )
+            data = pd.concat([data, ohe_data], axis=1).drop(i, axis=1)
+
+    print("OHE ended")
+    return data
+
+def RMSLE(y_true:np.ndarray, y_pred:np.ndarray) -> np.float64:
+    """The Root Mean Squared Log Error (RMSLE) metric
+    Notes
+    -----
+
+    Version
+    -------
+    specification : E.M. (v.1 07/04/2022)
+    implementation : E.M. (v.1 07/04/2022)
+    """
+    return np.sqrt(mean_squared_log_error(y_true, y_pred))
+
+
 if __name__ == '__main__':
     start_time = time.time() #set the beginning of the timer for the execution
 
     # ----- LOADING MAIN DATASET -----
     df = load_csv('train')
     print("dataset loaded")
+
+    # ----- CLEAN DATA AND CLEAN ITEMS -----
+    df = clean_setdata(df)
+
+    # ----- REMOVE NON-SIGNIFICANT STORES, THAT HAVE FEW DATA AVAILABLE -----
+    df = delete_unsignificant_stores(df)
 
     # ---------------------------------------------------------
     # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
@@ -498,14 +606,11 @@ if __name__ == '__main__':
     # ----- OPTIMIZE DATA BY DOWNCASTING NUMERIC FEATURES -----
     df_sales = df_optimized(df_sales)
 
-    # ----- CLEAN DATA AND CLEAN ITEMS -----
-
-    # ----- REMOVE NON-SIGNIFICANT STORES, THAT HAVE FEW DATA AVAILABLE -----
-
-    # ----- DROP DUPLICATES (ROWS) -----
-
     # ----- REPLACING OUTLIER VALUES BY NaN, INTERPOLATE AND SCALE -----
     df_sales = remove_outlier(df_sales, np.nan)
+
+    # ----- ENCODE CATEGORICAL DATAS -----
+    df_sales = categorical_encoder(df_sales)
 
     # ----- DOWNCAST AGAIN ??? -----
 
