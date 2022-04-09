@@ -8,9 +8,11 @@ import time
 
 import datetime
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import mean_squared_log_error
 
 from xgboost import train
+
+from forecasting_for_sales.utils import *
+
 
 def load_big_dataset():
     """Get data from local (raw_data)
@@ -541,17 +543,7 @@ def categorical_encoder(data):
     print("OHE ended")
     return data
 
-def RMSLE(y_true:np.ndarray, y_pred:np.ndarray) -> np.float64:
-    """The Root Mean Squared Log Error (RMSLE) metric
-    Notes
-    -----
 
-    Version
-    -------
-    specification : E.M. (v.1 07/04/2022)
-    implementation : E.M. (v.1 07/04/2022)
-    """
-    return np.sqrt(mean_squared_log_error(y_true, y_pred))
 
 
 if __name__ == '__main__':
