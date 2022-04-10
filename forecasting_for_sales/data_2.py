@@ -6,6 +6,30 @@ import pandas as pd
 import numpy as np
 import time
 
+def load_csv(name_file):
+    """Load csv
+    Parameters
+    ----------
+    name_file : name of file - String
+
+    Returns
+    -------
+    pandas.DataFrame : df of your file
+
+    Notes
+    -----
+    Functions which regroup all load
+    functions implemented individually (bad)
+    Don't forget to check your folder /raw_data or /data
+
+    Version
+    -------
+    specification : J.N. (v.1 08/04/2022)
+    implementation : O.S. ; J.N. (v.1 08/04/2022)
+    """
+    print(f'{name_file} has been loaded')
+    return pd.read_csv(f'../raw_data/{name_file}.csv')
+
 def feature_date_engineer(df):
     """Convert date (object) to datetime and add 4 columns (year, month, day, day of week)
     Parameters
@@ -56,23 +80,17 @@ def generate_df_base(df_train):
 
     """
     # DataFrame with date - TO DO
-    rng = pd.date_range(start='2013-01-01', end='2017-08-15')
+    rng = pd.date_range(start='2016-01-01', end='2016-12-31') # remettre 2013_01_01 - 2017_08_15 ------------------
     df_base = pd.DataFrame({'date': rng})
 
-    # DataFrame with store_nbr
-    store_nbr_series = df_train['store_nbr'].unique()
-    df_all_store = pd.DataFrame({'store_nbr': store_nbr_series})
+    # Dataframe with combinations store_nbr item_nbr existing in sales dataset
+    store_item_combin = df_train[['store_nbr', 'item_nbr']].drop_duplicates()
 
-    df_base = df_base.merge(df_all_store, how='cross')
-
-    # DataFrame with item_nbr
-    item_nbr_series = df_train['item_nbr'].unique()
-    df_item = pd.DataFrame({'item_nbr': item_nbr_series})
-
-    df_base = df_base.merge(df_item, how='cross')
+    #df_base = df_base.merge(df_item, how='cross')
+    df_base = df_base.merge(store_item_combin, how='cross')
 
     # For memory
-    del df_all_store, df_item
+    del store_item_combin
 
     return df_base
 
@@ -198,27 +216,22 @@ def generate_df_holiday(holiday_data, stores_data):
     city_state = stores_data[['city', 'state']].drop_duplicates()
 
     # Prepare Local
-    local_holiday = holiday_data.loc[holiday_data['locale'] == 'Local'] # dernier-------------------
-        # new column city in local_holiday, useful for merging
-    local_holiday['city'] = local_holiday['locale_name']
+    local_holiday = holiday_data.loc[holiday_data['locale'] == 'Local']
+    local_holiday = local_holiday.rename(columns={'locale_name': 'city'})
 
     # Prepare Regional
     regional_holiday = holiday_data.loc[holiday_data['locale'] == 'Regional']
     regional_holiday = regional_holiday.merge(city_state,
                                               left_on='locale_name',
                                               right_on='state')
-        # State not useful for merging
-    regional_holiday.drop(columns='state', inplace=True)
+    regional_holiday.drop(columns=['state', 'locale_name'], inplace=True)
 
     # Prepare National
     national_holiday = holiday_data.loc[holiday_data['locale'] == 'National']
-        # Add column country in city_state to merge easily after
     city_state['country'] = 'Ecuador'
     national_holiday = national_holiday.merge(city_state,
                                               left_on='locale_name',
                                               right_on='country')
-    # Not useful
-    national_holiday.drop(columns=['state', 'country'], inplace=True)
 
     # Regroup 3 locales
     df_holiday = pd.concat([local_holiday,
@@ -227,7 +240,8 @@ def generate_df_holiday(holiday_data, stores_data):
                                 .drop_duplicates()
     df_holiday['is_special'] = 1 # all holiday is special
 
-
+    del local_holiday, regional_holiday, national_holiday, city_state
+    print("generated df holidays")
     return df_holiday
 
 def merge_stores(df_sales, stores_data):
@@ -255,7 +269,7 @@ def merge_stores(df_sales, stores_data):
 
     # For memory
     del stores_data
-
+    print("merged stores and sales")
     return df_sales
 
 def merge_df_holiday(df_sales, df_holiday):
@@ -280,15 +294,19 @@ def merge_df_holiday(df_sales, df_holiday):
     """
     # Set to_datetime, important...
     df_holiday['date'] = pd.to_datetime(df_holiday['date'])
+    df_sales['date'] = pd.to_datetime(df_sales['date'])
+    df_sales.drop(columns=['Unnamed: 0', 'id'], inplace=True)
 
-    #df_sales = df_sales.merge(df_holiday, how='left', on=['date', 'city']) #h-------------- dernière modif
-    df_sales.merge(df_holiday, how='left', on=['date', 'city'])
+    stores = pd.read_csv('../raw_data/stores.csv')
+    df_sales = df_sales.merge(stores, how='left', on=['store_nbr', 'city', 'state', 'type', 'cluster'])
+
+    df_sales = df_sales.merge(df_holiday, how='left', on=['date', 'city'])
     # Replace NaN by 0
     df_sales['is_special'].fillna(0, inplace=True)
 
     # For memory
-    del df_holiday
-
+    del df_holiday, stores
+    print("merged holidays and sales")
     return df_sales
 
 def merge_items(df_sales, items_data):
@@ -315,32 +333,8 @@ def merge_items(df_sales, items_data):
 
     # For memory
     del items_data
-
+    print("merged items and sales")
     return df_sales
-
-
-def load_csv(name_file):
-    """Load csv
-    Parameters
-    ----------
-    name_file : name of file - String
-
-    Returns
-    -------
-    pandas.DataFrame : df of your file
-
-    Notes
-    -----
-    Functions which regroup all load
-    functions implemented individually (bad)
-    Don't forget to check your folder /raw_data or /data
-
-    Version
-    -------
-    specification : J.N. (v.1 08/04/2022)
-    implementation : O.S. ; J.N. (v.1 08/04/2022)
-    """
-    return pd.read_csv(f'../raw_data/{name_file}.csv')
 
 def df_optimized(df, verbose=True, **kwargs):
     """
@@ -373,50 +367,53 @@ if __name__ == '__main__':
     start_time = time.time() #set the beginning of the timer for the execution
 
     # ----- LOADING MAIN DATASET -----
-    df = load_csv('train')
-    print("dataset loaded")
-    df = df_optimized(df)
-    # ---------------------------------------------------------
-    # ----- MERGE HOLIDAYS, STORES AND PROCESS SPECIAL DAYS -----
-    # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
-    # jonathan
-    df_sales = prepare_df_sales(df)
+    #df = load_csv('train')
+    df_sales = load_csv('/all_products/train2016') # a remodifier avec le train entier jusqu'à fin 2016 ----------------------------------------
     df_sales = df_optimized(df_sales)
 
+    # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
+    df_sales = prepare_df_sales(df_sales)
+    df_sales = df_optimized(df_sales)
+    print("prepared padded df sales and merged with actual sales")
+
     # traitement des holidays
-    # padding par 0
     holidays = load_csv('holidays_events_v2') # load holidays
     stores = load_csv('stores') # load stores
 
     df_holiday = generate_df_holiday(holidays, stores)
+
+    df_holiday.to_csv('../raw_data/df_holiday.csv', index=False)
     # merge sur store
     df_sales = merge_stores(df_sales, stores)
 
+    df_sales.to_csv('../raw_data/df_sales.csv', index=False)
+
     # merge sur holiday
-    df_sales = merge_df_holiday(df_sales, holidays)
+    df_sales = merge_df_holiday(df_sales, df_holiday)
+
 
     items = load_csv('items') # load items
     df_sales = merge_items(df_sales, items) # merge items
 
     # ----- FEATURE ENGINEER DATE -----
     df_sales = feature_date_engineer(df_sales)
+    df_sales.drop(columns=['Unnamed: 0'], inplace=True)
     df_sales = df_optimized(df_sales)
 
     # ---------------------------------------------------------
     print("merged holidays, items, stores and processed special days")
 
     # ----- KEEP ONLY PERISHABLE PRODUCTS AND REMOVE PERISHABLE COLUMN -----
+    """
     df_sales = remove_non_perish(df_sales)
-
-    # ----- OPTIMIZE DATA BY DOWNCASTING NUMERIC FEATURES -----
-    df_sales = df_optimized(df_sales)
 
     family_sales = df_sales.groupby(by=['store_nbr', 'month', 'family'])[['unit_sales']]\
                             .sum()\
                             .reset_index()\
                             .rename(columns={'unit_sales': 'family_sales'})
 
-    df_sales.to_csv('../raw_data/preprocessed_items.csv')
     family_sales.to_csv('../raw_data/preprocessed_families.csv')
+    """
+    df_sales.to_csv('../raw_data/preprocessed_sales.csv', index=False)
 
     print("--- %s seconds ---" % (time.time() - start_time)) #print the timing
