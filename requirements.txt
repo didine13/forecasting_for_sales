@@ -32,3 +32,6 @@ termcolor
 # API
 fastapi
 uvicorn
+
+# app framework
+streamlit
