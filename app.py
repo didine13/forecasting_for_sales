@@ -4,12 +4,24 @@ import datetime
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 # Initial state of website
 st.set_page_config(
     page_title="Forecast for sales",
     page_icon="💰",
     layout="wide")
-
+# css style
+CSS = """
+h1 {
+    color: red;
+}
+.stApp {
+    background-color: #2C2E43;
+}
+"""
+st.write(f'<style>{CSS}</style>', unsafe_allow_html=True)
 
 st.title('Forecast for sales')
 
@@ -20,11 +32,13 @@ st.header('Management inventory')
 expander_df = st.expander(label='DataFrame')
 
 with expander_df:
-    df = pd.read_csv('raw_data/train_all_table.csv', nrows=100).drop(columns='Unnamed: 0')
+    df = pd.read_csv('raw_data/train_all_table.csv', nrows=500000).drop(columns='Unnamed: 0')
 
     option_head = st.slider('head : ', 1, 100, 5)
     st.write(df.head(option_head))
 
+st.write('Date minimum : ', min(df['date']))
+st.write('Date maximum : ', max(df['date']))
 
 # Inventory Units (With + or -) %
 # Sales Units (With + or -) %
@@ -33,6 +47,21 @@ col1.metric("Inventory Units", "437.8", "-$1.25")
 col2.metric("Sales Units", "121.10", "0.46%")
 
 col_show1, col_show2 = st.columns(2)
+
+
+# Test directly plot
+# ------------------
+
+fig , axes = plt.subplots(2, 2, figsize=(15, 16))
+
+sns.countplot(ax=axes[0, 0], y=df['family'])
+sns.countplot(ax=axes[0, 1], y=df['type_x'])
+sns.countplot(ax=axes[1, 0], y=df['state'])
+
+st.pyplot(fig)
+
+# ------------------
+
 
 # Checkbox to display something
 # Columns 1
@@ -94,9 +123,26 @@ with col_show2:
 # Map
 # -----------------------
 if st.checkbox('Show Map', value=True):
+
+    st.table(df['city'].unique())
+
+    # from geopy.geocoders import Nominatim
+
+    # for city in df['city'].unique():
+
+    #     address = df['city']
+    #     geolocator = Nominatim(user_agent="name")
+    #     location = geolocator.geocode(address)
+    #     print(location.address)
+    #     print((location.latitude, location.longitude))
+    #     df[df['city'] == city]['lat'] = location.latitude
+    #     df[df['city'] == city]['lon'] = location.longitude
+
+
     st.write('''
-        Screen Map : with Folium
+        Screen Map : with Folium (later)
         ''')
+
     st.map()
 
     # search latitude, longitude
