@@ -140,3 +140,22 @@ gcp_submit_training:
 # ----------------------------------
 run_api:
 	uvicorn api.fast:app --reload  # load web server with code autoreload : web server pour l'appel de l'API
+
+
+
+# ----------------------------------
+#         HEROKU COMMANDS
+# ----------------------------------
+
+streamlit:
+	-@streamlit run app.py
+
+heroku_login:
+	-@heroku login
+
+heroku_create_app:
+	-@heroku create ${APP_NAME}
+
+deploy_heroku:
+	-@git push heroku master
+	-@heroku ps:scale web=1
