@@ -4,41 +4,30 @@ import datetime
 import numpy as np
 import pandas as pd
 
+# Initial state of website
+st.set_page_config(
+    page_title="Forecast for sales",
+    page_icon="💰",
+    layout="wide")
+
+
 st.title('Forecast for sales')
 
 st.header('Management inventory')
 
 
 # st.dataframe(my_dataframe)
-if st.checkbox('Show DataFrame'):
-    @st.cache
-    def get_dataframe_data():
+expander_df = st.expander(label='DataFrame')
 
-        # add DataFrame of train_all_table, or others... i don't know
-        return pd.DataFrame(
-                np.random.randn(10, 5),
-                columns=('col %d' % i for i in range(5))
-            )
+with expander_df:
+    df = pd.read_csv('raw_data/train_all_table.csv', nrows=100).drop(columns='Unnamed: 0')
 
-    df = get_dataframe_data()
-
-    st.write(df.head())
-
-# Columns to organize website
-columns = st.columns(4)
-
-first_name = columns[0].text_input("First name", value="John")
-columns[0].write(first_name)
-
-last_name = columns[1].text_input("Last name", value="Doe")
-columns[1].write(last_name)
-
-location = columns[2].text_input("Location", value="Paris")
-columns[2].write(location)
+    option_head = st.slider('head : ', 1, 100, 5)
+    st.write(df.head(option_head))
 
 
 # Checkbox to display something
-if st.checkbox('Show 1'):
+if st.checkbox('Show 1', value=True):
     st.write('''
         Screen 1 : Inventory days of supply
         ''')
@@ -56,7 +45,7 @@ if st.checkbox('Show 1'):
 
 # Second
 # -----------------------
-if st.checkbox('Show 2'):
+if st.checkbox('Show 2', value=True):
     st.write('''
         Screen 2 : Top 10 of sales, invetories
         ''')
@@ -67,6 +56,9 @@ if st.checkbox('Show 2'):
 
     # Inventory Units (With + or -) %
     # Sales Units (With + or -) %
+    col1, col2 = st.columns(2)
+    col1.metric("Inventory Units", "437.8", "-$1.25")
+    col2.metric("Sales Units", "121.10", "0.46%")
 
 
 # Third
@@ -103,6 +95,7 @@ if st.checkbox('Show Map'):
     st.write('''
         Screen Map : with Folium
         ''')
+    st.map()
 
     # search latitude, longitude
     # coordinates of city, state
@@ -110,3 +103,10 @@ if st.checkbox('Show Map'):
 
 
 
+# Dont encapsulate columns inside columns...
+# # Columns to organize website
+# columns = st.columns(2)
+
+# with columns[0]:
+
+# with columns[1]:
