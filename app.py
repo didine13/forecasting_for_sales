@@ -26,72 +26,74 @@ with expander_df:
     st.write(df.head(option_head))
 
 
+# Inventory Units (With + or -) %
+# Sales Units (With + or -) %
+col1, col2 = st.columns(2)
+col1.metric("Inventory Units", "437.8", "-$1.25")
+col2.metric("Sales Units", "121.10", "0.46%")
+
+col_show1, col_show2 = st.columns(2)
+
 # Checkbox to display something
-if st.checkbox('Show 1', value=True):
-    st.write('''
-        Screen 1 : Inventory days of supply
-        ''')
-    st.write('''
-        Screen 1 : Product stock details
-        ''')
+# Columns 1
+with col_show1:
+    if st.checkbox('Show 1', value=True):
+        st.write('''
+            Screen 1 : Inventory days of supply
+            ''')
+        st.write('''
+            Screen 1 : Product stock details
+            ''')
 
 
-    # Select box date - min: 2013-01-01 ; max: 2017-08-15 (train)
-    start_date = st.date_input('Choose start date', datetime.date(2013, 1, 1))
-    end_date = st.date_input('Choose end date', datetime.date(2017, 8, 15))
-    st.write('Start date', start_date)
-    st.write('End date', end_date)
+        # Select box date - min: 2013-01-01 ; max: 2017-08-15 (train)
+        start_date = st.date_input('Choose start date', datetime.date(2013, 1, 1))
+        end_date = st.date_input('Choose end date', datetime.date(2017, 8, 15))
+        st.write('Start date', start_date)
+        st.write('End date', end_date)
 
 
-# Second
-# -----------------------
-if st.checkbox('Show 2', value=True):
-    st.write('''
-        Screen 2 : Top 10 of sales, invetories
-        ''')
+    # Third
+    # -----------------------
+    if st.checkbox('Show 3'):
+        st.write('''
+            Screen 3 : Inventory Trend
+            ''')
+        # check for
 
-    st.write('''
-        Screen 2 : Needed product (Prod, Alert, Nb)
-        ''')
+        st.write('''
+            Screen 3 : Inventory Efficient (Lines predict, Lines real)
+            ''')
 
-    # Inventory Units (With + or -) %
-    # Sales Units (With + or -) %
-    col1, col2 = st.columns(2)
-    col1.metric("Inventory Units", "437.8", "-$1.25")
-    col2.metric("Sales Units", "121.10", "0.46%")
+# Columns 2
+with col_show2:
+    # Second
+    # -----------------------
+    if st.checkbox('Show 2', value=True):
+        st.write('''
+            Screen 2 : Top 10 of sales, invetories
+            ''')
 
+        st.write('''
+            Screen 2 : Needed product (Prod, Alert, Nb)
+            ''')
+    # Fourth
+    # -----------------------
+    if st.checkbox('Show 4'):
+        st.write('''
+            Screen 4 : Available stock by departement
+            ''')
 
-# Third
-# -----------------------
-if st.checkbox('Show 3'):
-    st.write('''
-        Screen 3 : Inventory Trend
-        ''')
-
-    st.write('''
-        Screen 3 : Inventory Efficient (Lines predict, Lines real)
-        ''')
-
-
-
-
-# Fourth
-# -----------------------
-if st.checkbox('Show 4'):
-    st.write('''
-        Screen 4 : Available stock by departement
-        ''')
-
-    # days with sliders, textarea
-    st.write('''
-        Screen 4 : Expire stock within 10 days
-        ''')
-    # With selectbox of expire days (10, 9, ...)
+        # days with sliders, textarea
+        st.write('''
+            Screen 4 : Expire stock within 10 days
+            ''')
+        # With selectbox of expire days (10, 9, ...)
 
 
 # Map
 # -----------------------
-if st.checkbox('Show Map'):
+if st.checkbox('Show Map', value=True):
     st.write('''
         Screen Map : with Folium
         ''')
@@ -100,13 +102,3 @@ if st.checkbox('Show Map'):
     # search latitude, longitude
     # coordinates of city, state
     # display details of stores when hover with mousepad
-
-
-
-# Dont encapsulate columns inside columns...
-# # Columns to organize website
-# columns = st.columns(2)
-
-# with columns[0]:
-
-# with columns[1]:
