@@ -96,12 +96,12 @@ col_show1, col_show2 = st.columns(2)
 # Columns 1
 with col_show1:
     if st.checkbox('Show 1', value=True):
-        st.write('''
-            Screen 1 : Inventory days of supply
-            ''')
-        st.write('''
-            Screen 1 : Product stock details
-            ''')
+        '''
+        Screen 1 : Inventory days of supply
+        '''
+        '''
+        Screen 1 : Product stock details
+        '''
 
         # Product stock details - begin
 
