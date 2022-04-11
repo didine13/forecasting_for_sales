@@ -1,10 +1,14 @@
 # import
-from ast import arg
-import re
-from sys import argv
+from nis import cat
 import pandas as pd
 import numpy as np
 import time
+from sklearn.preprocessing import OneHotEncoder
+
+from ast import arg
+import re
+from sys import argv
+
 
 def load_csv(name_file):
     """Load csv
@@ -53,10 +57,17 @@ def feature_date_engineer(df):
     df['month'] = df['date'].dt.month
     df['day'] = df['date'].dt.day
     df['day_of_week'] = df['date'].dt.dayofweek
+    df['juliandate'] = df['date'].dt.strftime('%y%m%j')
     print("added time features engineered")
     return df
 
 # # Begin for data-preparation_for-preproc
+
+def clean_main_dataset(df):
+    df_sales['onpromotion'] = df_sales['onpromotion'].fillna(False)
+    df_sales.drop_duplicates(inplace=True)
+    df_sales["unit_sales"] = np.where(df_sales['unit_sales'] < 0, 0, df_sales['unit_sales'])
+    return df
 
 def generate_df_base(df_train):
     """Generate DataFrame which are the base to prepare dataset preproc
@@ -80,7 +91,7 @@ def generate_df_base(df_train):
 
     """
     # DataFrame with date - TO DO
-    rng = pd.date_range(start='2016-01-01', end='2016-12-31') # remettre 2013_01_01 - 2017_08_15 ------------------
+    rng = pd.date_range(start='2016-01-01', end='2016-12-31') # range 2013_01_01 - 2017_08_15 ----------------------------------------------------
     df_base = pd.DataFrame({'date': rng})
 
     # Dataframe with combinations store_nbr item_nbr existing in sales dataset
@@ -359,16 +370,61 @@ def df_optimized(df, verbose=True, **kwargs):
     return df
 
 def remove_non_perish(df):
-    df = df[df['perishable']==1]
-    df.drop('perishable', axis=1, inplace=True)
+    df = df.loc[df['perishable']==1]
+    df.drop(columns=['perishable'], inplace=True)
     print("removed non-perishable products and removed perishable column")
+    return df
+
+def remove_outliers(df):
+    df_q1 = df.groupby(by=['store_nbr', 'item_nbr'])['unit_sales']\
+                        .agg(lambda x: x.quantile(0.25))\
+                        .reset_index()\
+                        .rename(columns={'unit_sales': 'q1'})
+
+    df_q3 = df.groupby(by=['store_nbr', 'item_nbr'])['unit_sales']\
+                        .agg(lambda x: x.quantile(0.75))\
+                        .reset_index()\
+                        .rename(columns={'unit_sales': 'q3'})
+
+    df = df.merge(df_q1, how='left', on=['store_nbr', 'item_nbr'])
+    df = df.merge(df_q3, how='left', on=['store_nbr', 'item_nbr'])
+    df['fence_high'] = 5* (df['q3'] - df['q1'])
+    df['unit_sales'] = np.where(df['unit_sales']>df['fence_high'], df['fence_high'], df['unit_sales'])
+    print("removed outliers per store per product")
+    return df
+
+def groupby_family(df):
+    df= df.drop(columns=['cluster', 'item_nbr', 'onpromotion', 'class', 'type_y', 'type_x', 'q1', 'q3', 'fence_high', 'state', 'juliandate', 'year', 'month', 'day', 'day_of_week', 'city'])
+    df = df.groupby(by=['date','store_nbr','family','is_open','is_special'])[['unit_sales']]\
+            .sum()\
+            .reset_index()\
+            .rename(columns={'unit_sales': 'family_sales'})
+    print("grouped by family")
+    return df
+
+def encoder(data, encoder="ohe",):
+    categorical_data = data.select_dtypes(include=["bool","object"]).columns
+    for i in categorical_data:
+    # Boolean colums
+        if len(data[i].unique()) == 2:
+            ohe = OneHotEncoder(handle_unknown='ignore', drop='if_binary', sparse = False)
+            data[i] = ohe.fit_transform(data[[i]])
+        # Non boolean columns
+        else:
+            ohe = OneHotEncoder()
+            data = data.join(pd.DataFrame(ohe.fit_transform(data[[i]]).toarray(), columns=ohe.get_feature_names()))
+            data = data.drop(columns=i)
+        #  data = pd.concat([data, ohe_data], axis=1).drop(i, axis=1)
+    print("OHE ended")
+    return data
 
 if __name__ == '__main__':
     start_time = time.time() #set the beginning of the timer for the execution
 
     # ----- LOADING MAIN DATASET -----
-    #df = load_csv('train')
     df_sales = load_csv('/all_products/train2016') # a remodifier avec le train entier jusqu'à fin 2016 ----------------------------------------
+    df_sales = clean_main_dataset(df_sales)
+    df_sales = df_sales.loc[df_sales['store_nbr'] == 25] # test raccourci ----------------------------------------------------------------------
     df_sales = df_optimized(df_sales)
 
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
@@ -376,44 +432,46 @@ if __name__ == '__main__':
     df_sales = df_optimized(df_sales)
     print("prepared padded df sales and merged with actual sales")
 
-    # traitement des holidays
-    holidays = load_csv('holidays_events_v2') # load holidays
-    stores = load_csv('stores') # load stores
+    # ----- MANAGING HOLIDAYS, MERGING HOLIDAYS, STORES, ITEMS TABLES -----
+    holidays = load_csv('holidays_events_v2')
+    stores = load_csv('stores')
 
     df_holiday = generate_df_holiday(holidays, stores)
+    #df_holiday.to_csv('../df_holiday.csv', index=False)
 
-    df_holiday.to_csv('../raw_data/df_holiday.csv', index=False)
-    # merge sur store
     df_sales = merge_stores(df_sales, stores)
+    #df_sales.to_csv('../df_sales.csv', index=False)
 
-    df_sales.to_csv('../raw_data/df_sales.csv', index=False)
-
-    # merge sur holiday
     df_sales = merge_df_holiday(df_sales, df_holiday)
 
-
-    items = load_csv('items') # load items
-    df_sales = merge_items(df_sales, items) # merge items
+    items = load_csv('items')
+    df_sales = merge_items(df_sales, items)
 
     # ----- FEATURE ENGINEER DATE -----
     df_sales = feature_date_engineer(df_sales)
-    df_sales.drop(columns=['Unnamed: 0'], inplace=True)
     df_sales = df_optimized(df_sales)
 
     # ---------------------------------------------------------
     print("merged holidays, items, stores and processed special days")
 
     # ----- KEEP ONLY PERISHABLE PRODUCTS AND REMOVE PERISHABLE COLUMN -----
-    """
-    df_sales = remove_non_perish(df_sales)
+    #df_sales = remove_non_perish(df_sales)
 
-    family_sales = df_sales.groupby(by=['store_nbr', 'month', 'family'])[['unit_sales']]\
-                            .sum()\
-                            .reset_index()\
-                            .rename(columns={'unit_sales': 'family_sales'})
+    # ----- REMOVE OUTLIERS BY ITEM -----
+    df_sales = remove_outliers(df_sales)
+    #df_sales.to_csv('../preprocessed_sales_before_grouping.csv', index=False)
 
-    family_sales.to_csv('../raw_data/preprocessed_families.csv')
-    """
-    df_sales.to_csv('../raw_data/preprocessed_sales.csv', index=False)
+    # ------ GROUP BY FAMILY -------
+    df_sales = groupby_family(df_sales)
+
+    # ----- SCALING ----- (chez Elodine)
+
+    # ----- ONE HOT ENCODE CATEGORICAL FEATURES ----- (chez Elodine)
+    #df_sales = encoder(df_sales)
+
+
+    df_sales.to_csv('../preprocessed_sales_grouped_25.csv', index=False)
+    print("csv out")
+
 
     print("--- %s seconds ---" % (time.time() - start_time)) #print the timing
