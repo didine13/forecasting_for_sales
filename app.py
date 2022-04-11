@@ -43,7 +43,7 @@ expander_df = st.expander(label='DataFrame')
 with expander_df:
     @st.cache
     def get_cached_data():
-        return pd.read_csv('raw_data/train_all_table.csv', nrows=1000).drop(columns='Unnamed: 0')
+        return pd.read_csv('raw_data/train_all_table.csv', nrows=100_000).drop(columns='Unnamed: 0')
 
     df = get_cached_data()
 
@@ -63,27 +63,28 @@ col2.metric("Sales Units", "121.10", "0.46%")
 if st.checkbox('Show Plot'):
     # Test directly plot
     # ------------------
+    @st.cache
+    def countplot_temp():
+        fig , axes = plt.subplots(2, 2, figsize=(15, 16))
 
-    fig , axes = plt.subplots(2, 2, figsize=(15, 16))
+        sns.countplot(ax=axes[0, 0], data=df, y='family',
+                    order=df['family'].value_counts().index)\
+                        .set_title('Countplot family of products')
 
-    sns.countplot(ax=axes[0, 0], data=df, y='family',
-                order=df['family'].value_counts().index)\
-                    .set_title('Countplot family of products')
+        sns.countplot(ax=axes[0, 1], data=df, y='type_x',
+                    order=df['type_x'].value_counts().index)\
+                        .set_title('Countplot type of products')
+        sns.countplot(ax=axes[1, 0], data=df, y='state',
+                    order=df['state'].value_counts().index)\
+                        .set_title('Countplot nb products by state')
 
-    sns.countplot(ax=axes[0, 1], data=df, y='type_x',
-                order=df['type_x'].value_counts().index)\
-                    .set_title('Countplot type of products')
-    sns.countplot(ax=axes[1, 0], data=df, y='state',
-                order=df['state'].value_counts().index)\
-                    .set_title('Countplot nb products by state')
+        sns.histplot(ax=axes[1, 1],data=df, x='unit_sales')\
+            .set_title('Countplot onpromotion')
 
-    sns.histplot(ax=axes[1, 1],data=df, x='unit_sales')\
-        .set_title('Countplot onpromotion')
+        st.pyplot(fig)
 
-    st.pyplot(fig)
+    countplot_temp()
 
-
-# import plotly.express as px
 
 # # df = px.data.stocks(indexed=True)-1
 # fig2 = px.bar(df[df['store_nbr'] == 25], x='date', y='unit_sales')
@@ -99,6 +100,9 @@ with col_show1:
         '''
         Screen 1 : Inventory days of supply
         '''
+
+
+
         '''
         Screen 1 : Product stock details
         '''
@@ -129,13 +133,24 @@ with col_show1:
         Screen 3 : Inventory Trend
         '''
         # Lines plots x=date y=unit_sales
-        # fig_inv_trend = px.line(df, x='date', y='unit_sales', markers=True)
-        # fig_inv_trend.show()
+        def display_time_series():
+            # df = px.data.stocks() # replace with your own data source
+            fig = px.line(df, x='date', y='unit_sales', markers=True)
+            return fig
 
+        st.plotly_chart(display_time_series())
 
         '''
         Screen 3 : Inventory Efficient (Lines predict, Lines real)
         '''
+        # start inventory efficient
+        def display_time_series():
+            # dataframe predicted
+            fig = px.line(df, x='date', y='unit_sales', markers=True)
+            # dataframe real
+            fig = px.line(df, x='date', y='unit_sales', markers=True)
+            return fig
+        # end inventory efficient
 
 
 
@@ -164,6 +179,14 @@ with col_show2:
         '''
         Screen 2 : Needed product (Prod, Alert, Nb)
         '''
+        # Select store
+        option = st.selectbox('Select a line to filter', df['store_nbr'].unique())
+        df_store = df[df['store_nbr'] == option]
+
+        # By store
+        st.write(df_store)
+
+
 
 
     # Fourth
@@ -188,31 +211,10 @@ with col_show2:
 # -----------------------
 if st.checkbox('Show Map'):
 
-    st.write(df['city'].unique())
+    st.write(df['city'].unique().T)
 
     '''
     Screen Map : with Folium (later)
     '''
 
-    st.map()
-
-    # search latitude, longitude
-    # coordinates of city, state
-    # display details of stores when hover with mousepad
-
-    # from geopy.geocoders import Nominatim
-
-    # for city in df['city'].unique():
-
-    #     address = df['city']
-    #     geolocator = Nominatim(user_agent="name")
-    #     location = geolocator.geocode(address)
-
-    #     st.write(address)
-    #     st.write(geolocator)
-    #     st.write(location)
-
-    #     print(location.address)
-    #     print((location.latitude, location.longitude))
-    #     df[df['city'] == city]['lat'] = location.latitude
-    #     df[df['city'] == city]['lon'] = location.longitude
+    # st.map()
