@@ -43,7 +43,7 @@ expander_df = st.expander(label='DataFrame')
 with expander_df:
     @st.cache
     def get_cached_data():
-        return pd.read_csv('raw_data/train_all_table.csv', nrows=100_000).drop(columns='Unnamed: 0')
+        return pd.read_csv('raw_data/train_all_table.csv', nrows=1000).drop(columns='Unnamed: 0')
 
     df = get_cached_data()
 

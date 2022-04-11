@@ -35,3 +35,9 @@ uvicorn
 
 # app framework
 streamlit
+
+# plot
+datetime
+matplotlib.pyplot
+seaborn
+plotly.express
