@@ -38,6 +38,6 @@ streamlit
 
 # plot
 datetime
-matplotlib.pyplot
+matplotlib
 seaborn
-plotly.express
+plotly
