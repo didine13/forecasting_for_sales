@@ -129,8 +129,8 @@ with col_show1:
         Screen 3 : Inventory Trend
         '''
         # Lines plots x=date y=unit_sales
-        fig_inv_trend = px.line(df, x='date', y='unit_sales', markers=True)
-        fig_inv_trend.show()
+        # fig_inv_trend = px.line(df, x='date', y='unit_sales', markers=True)
+        # fig_inv_trend.show()
 
 
         '''
@@ -186,9 +186,19 @@ with col_show2:
 '''
 # Map
 # -----------------------
-if st.checkbox('Show Map', value=True):
+if st.checkbox('Show Map'):
 
     st.write(df['city'].unique())
+
+    '''
+    Screen Map : with Folium (later)
+    '''
+
+    st.map()
+
+    # search latitude, longitude
+    # coordinates of city, state
+    # display details of stores when hover with mousepad
 
     # from geopy.geocoders import Nominatim
 
@@ -206,14 +216,3 @@ if st.checkbox('Show Map', value=True):
     #     print((location.latitude, location.longitude))
     #     df[df['city'] == city]['lat'] = location.latitude
     #     df[df['city'] == city]['lon'] = location.longitude
-
-
-    st.write('''
-        Screen Map : with Folium (later)
-        ''')
-
-    st.map()
-
-    # search latitude, longitude
-    # coordinates of city, state
-    # display details of stores when hover with mousepad
