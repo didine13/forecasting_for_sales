@@ -1,1 +1,1 @@
-web: pip install . -U && scripts/forecasting_for_sales-run
+web: sh setup.sh && streamlit run app.py
