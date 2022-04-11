@@ -91,7 +91,7 @@ def generate_df_base(df_train):
 
     """
     # DataFrame with date - TO DO
-    rng = pd.date_range(start='2016-01-01', end='2016-12-31') # range 2013_01_01 - 2017_08_15 ----------------------------------------------------
+    rng = pd.date_range(start='2013-01-01', end='2016-12-31') # range 2013_01_01 - 2017_08_15 ----------------------------------------------------
     df_base = pd.DataFrame({'date': rng})
 
     # Dataframe with combinations store_nbr item_nbr existing in sales dataset
