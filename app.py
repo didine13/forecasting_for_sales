@@ -208,13 +208,20 @@ with col_show2:
         ### Screen 2 : Top 10 of sales, invetories
         '''
         # add date to choose
-        date_top_10 = st.date_input(datetime.year(min(df['date'].dt.year)))
+        year_top_10 = st.selectbox('Year',
+                                range(min(df['date'].dt.year),
+                                    max(df['date'].dt.year)))
 
-        df_in_date = df[df['date'].dt.year == date_top_10]
-        df_top_10 = df_in_date[['family', 'family_sales']].groupby(by='family')\
-                             .sum()\
-                              .sort_values('family_sales', ascending=False).head(10)
-        st.dataframe(df_top_10)
+        def show_top_10(df, year_top_10):
+            # df['date'] = pd.to_datetime(df['date'])
+            df_in_date = df[df['date'].dt.year == year_top_10]
+            df_top_10 = df_in_date[['family', 'family_sales']].groupby(by='family')\
+                                .sum()\
+                                .sort_values('family_sales', ascending=False).head(10)
+            return df_top_10
+
+
+        st.dataframe(show_top_10(df, year_top_10))
 
         '''
         ### Screen 2 : Needed product (Prod, Alert, Nb)
