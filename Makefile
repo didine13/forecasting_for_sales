@@ -95,7 +95,7 @@ create_bucket:
 #      UPLOAD DATASET
 # ----------------------------------
 
-LOCAL_PATH=~/code/didine13/forecasting_for_sales/raw_data/train.csv
+LOCAL_PATH=~/code/didine13/forecasting_for_sales/raw_data/train2016.csv
 
 # bucket directory in which to store the uploaded file (`data` is an arbitrary name that we choose to use)
 BUCKET_FOLDER=data
