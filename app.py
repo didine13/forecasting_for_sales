@@ -1,5 +1,5 @@
 # Import
-from matplotlib.font_manager import get_fontconfig_fonts
+# from matplotlib.font_manager import get_fontconfig_fonts
 import streamlit as st
 import datetime
 import numpy as np
@@ -52,17 +52,50 @@ st.write('Min date: ', min(df['date']))
 st.write('Max date: ', max(df['date']))
 
 
+# regarder mois actuel (contre mois precedent)
+# comparer la somme des 2 family_sales
+# les afficher avec une perte ou un gain
+import datetime
+import dateutil.relativedelta
+
+d = datetime.datetime.strptime("2013-03-31", "%Y-%m-%d")
+d2 = d - dateutil.relativedelta.relativedelta(months=1)
+
+sb_month_unit = st.selectbox('Month Unit', range(min(df['date'].dt.month),
+                                                max(df['date'].dt.month)))
+
+sb_year_unit = st.selectbox('Year Unit', range(min(df['date'].dt.year),
+                                                max(df['date'].dt.year)))
+
+def inventory_unit(sb_month_unit, sb_year_unit):
+    df_present = df.loc[(df['date'].dt.year == sb_year_unit) & (df['date'].dt.month == sb_month_unit)]
+    result_actual = df_present['family_sales'].sum()
+
+    if sb_month_unit == 1:
+        df_past = df.loc[(df['date'].dt.year == sb_year_unit - 1) &
+                        (df['date'].dt.month == 12)]
+    else:
+        df_past = df.loc[(df['date'].dt.year == sb_year_unit) &
+                        (df['date'].dt.month == sb_month_unit - 1)]
+    result_past = result_actual - df_past['family_sales'].sum()
+
+
+    return result_actual, result_past
+
+
 # Inventory Units (With + or -) %
 # Sales Units (With + or -) %
 col1, col2 = st.columns(2)
-col1.metric("Inventory Units", "437.8", "-$1.25")
+ui_actual_month, iu_past_month = inventory_unit(sb_month_unit, sb_year_unit)
+col1.metric("Sales Units", f"{ui_actual_month}", f"{iu_past_month}")
 
 # show family_sales for this month
 # compare previous months
 # df['family_sales']
 # df.loc[df['date'].dt.year == ]
 
-col2.metric("Sales Units", "121.10", "0.46%")
+# In Progress
+col2.metric("Inventory Units", "121.10", "0.46%")
 
 
 
