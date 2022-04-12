@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+import datetime
 import pandas as pd
 import joblib
-from google.cloud import storage
-from forecasting_for_sales.params import BUCKET_NAME, BUCKET_STR1_DATA_PATH, BUCKET_STR2_DATA_PATH
+#from google.cloud import storage
+from forecasting_for_sales.params import BUCKET_NAME, BUCKET_STR1_DATA_PATH, BUCKET_STR2_DATA_PATH, STORAGE_LOCATION
 
 app = FastAPI()
 
@@ -17,12 +18,16 @@ app.add_middleware(
 )
 
 def generate_inventory(calc_pred):
+    pass
+
+@app.get("/")
+def index():
+    return {"greeting": "Hello world"}
 
 
 # define a root `/` endpoint
 @app.get("/predict")
 def predict(date, store_nbr, family):
-
     # charger le csv correspondant au store_nbr pour is_open et is_special
     path_str1 = f"gs://{BUCKET_NAME}/{BUCKET_STR1_DATA_PATH}"
     holidays_str1 = pd.read_csv(path_str1)
@@ -38,21 +43,23 @@ def predict(date, store_nbr, family):
     is_special = holidays.loc[holidays['date']==date]['is_special']
 
     X_dict = {'date': pd.to_datetime(date),
-            'store_nbr': int(store_nbr),
-            'family': family,
             'is_open': int(is_open),
             'is_special': int(is_special),
     }
 
     # from dictionary to dataframe
-    df_topredict = pd.DataFrame.from_dict(X_dict)
+    #df_topredict = pd.DataFrame.from_dict(X_dict)
 
     # load a model model.joblib trained according to store number and family
     family = family.replace('/', '_')
-    model_from_joblib  = joblib.load(f'model_{store_nbr}_{family}.joblib')
+    model_from_joblib  = joblib.load(f'{STORAGE_LOCATION}/model_{store_nbr}_{family}.joblib')
 
     # model.predict()
-    calc_pred = model_from_joblib.predict(df_topredict)[0]
+    calc_pred, conf_int = model_from_joblib.predict(start=pd.to_datetime(date), end=(pd.to_datetime(date)+pd.timedelta(days=15)), return_conf_int=True)
+
+    #df_topredict
 
     # return prediction
-    return {"predicted_sales": calc_pred}
+    return {"predicted_sales": calc_pred,
+            "confidence_int": conf_int
+    }
