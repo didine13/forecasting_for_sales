@@ -426,6 +426,7 @@ if __name__ == '__main__':
     # ----- LOADING MAIN DATASET -----
     df_sales = load_csv('/train')
     df_sales = df_sales.loc[df_sales['date']<'2017-01-01']
+    df_sales = df_sales.loc[df_sales['store_nbr']==2] # choix du store pour extraction csv ...........
     df_sales = clean_main_dataset(df_sales)
 
     df_sales = df_optimized(df_sales)
@@ -449,6 +450,7 @@ if __name__ == '__main__':
 
     items = load_csv('items')
     df_sales = merge_items(df_sales, items)
+    df_sales = remove_non_perish(df_sales) #--------------------------------------------------------------------
 
     # ----- FEATURE ENGINEER DATE -----
     df_sales = feature_date_engineer(df_sales)
@@ -473,7 +475,7 @@ if __name__ == '__main__':
     #df_sales = encoder(df_sales)
 
 
-    df_sales.to_csv(f'../preprocessed_sales_grouped.csv', index=False)
+    df_sales.to_csv(f'../preprocessed_sales_grouped_str2.csv', index=False)
     print("csv out")
 
 

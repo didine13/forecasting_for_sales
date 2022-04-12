@@ -1,0 +1,6 @@
+MODEL_NAME = 'forecasting_for_sales'
+MODEL_VERSION = 'v1'
+#STORAGE_LOCATION = 'models/forecasting_for_sales/model.joblib'
+BUCKET_NAME = 'wagon-data-835-forecasting-for-sales'
+BUCKET_STR1_DATA_PATH = 'data/preprocessed_sales_grouped_str1.csv'
+BUCKET_STR2_DATA_PATH = 'data/preprocessed_sales_grouped_str2.csv'
