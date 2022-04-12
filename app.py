@@ -122,22 +122,19 @@ if show_plot:
     st.pyplot(countplot_temp())
 
 
-# # df = px.data.stocks(indexed=True)-1
 # fig2 = px.bar(df[df['store_nbr'] == 25], x='date', y='family_sales')
-# fig2.show()
+# st.pyplot()
 
 # ------------------
 
 col_show1, col_show2 = st.columns(2)
 # Checkbox to display something
-# Columns 1
 # - Inventory days of supply
 # - Product stock details
 # - Inventory Trend
 # - Inventory Efficient (Lines predict, Lines real)
-with col_show1:
-    if show_1:
-    # if st.checkbox('Show 1', value=True):
+with col_show1: # Columns 1
+    if show_1: # InvDaysSupply,
         '''
         ### Screen 1 : Inventory days of supply
         '''
@@ -147,40 +144,17 @@ with col_show1:
         '''
         ### Screen 1 : Product stock details
         '''
-
-        # Product stock details - begin
-
         # df[['date', 'items', 'family_sales']]
-
+        # [product, date, unit_hand, unit_order]
         # if family_sales actual > or <, print 🔻 or ⬆
 
-        st.dataframe(df[['date', 'item_nbr', 'family_sales']].head(100))
+        df_stock_details = df[['family', 'family_sales']]\
+                            .groupby(by='family').sum()
+
+        st.dataframe(df_stock_details)
 
 
-        # Product stock details - end
-        from datetime import date
-        from dateutil.relativedelta import relativedelta
-
-        six_months = date.today()
-
-        # Select box date - min: 2013-01-01 ; max: 2017-08-15 (train)
-        min_date = datetime.date(2013, 1, 1)
-        start_date = st.date_input('Choose start date', min_date)
-        # end_date = st.date_input('Choose end date', min_date)
-        end_date = min_date + relativedelta(months=+3)
-
-        st.write('Date : ', start_date, ' ; ', end_date)
-
-
-
-        # end_date : start_date + 3months
-        # st.write('End date', end_date)
-
-
-    # Third
-    # -----------------------
     if show_3:
-    # if st.checkbox('Show 3'):
         '''
         ### Screen 3 : Inventory Trend
         '''
@@ -194,34 +168,26 @@ with col_show1:
 
 
 
-# Columns 2
-# - Top 10 of sales, invetories
-# - Needed product (Prod, Alert, Nb)
-# - Available stock by Family
-# - Expire stock within 10 days
-with col_show2:
-    # Second
-    # -----------------------
-    if show_2:
-    # if st.checkbox('Show 2', value=True):
+with col_show2: # Column 2
+    if show_2: # top10, NeedProduct
         '''
         ### Screen 2 : Top 10 of sales, invetories
         '''
         # add date to choose
-        year_top_10 = st.selectbox('Year',
+        sb_year_top_10 = st.selectbox('Year',
                                 range(min(df['date'].dt.year),
                                     max(df['date'].dt.year)))
 
-        def show_top_10(df, year_top_10):
+        def show_top_10(df, sb_year_top_10):
             # df['date'] = pd.to_datetime(df['date'])
-            df_in_date = df[df['date'].dt.year == year_top_10]
+            df_in_date = df[df['date'].dt.year == sb_year_top_10]
             df_top_10 = df_in_date[['family', 'family_sales']].groupby(by='family')\
                                 .sum()\
                                 .sort_values('family_sales', ascending=False).head(10)
             return df_top_10
 
 
-        st.dataframe(show_top_10(df, year_top_10))
+        st.dataframe(show_top_10(df, sb_year_top_10))
 
         '''
         ### Screen 2 : Needed product (Prod, Alert, Nb)
@@ -234,21 +200,26 @@ with col_show2:
         st.write(df_store)
 
 
-
-
-    # Fourth
-    # -----------------------
-    if show_4:
-    # if st.checkbox('Show 4'):
+    if show_4: # AvailableStock, ExpireStock
         '''
-        ### Screen 4 : Available stock by departement
+        ### Screen 4 : Available stock by family
         '''
+        sb_family = st.selectbox('Family', df['family'].unique())
+        df_family = df[df['family'] == sb_family]
+        # st.dataframe(df_family[['item_nbr', 'unit_sales']])
+        # Better with barplots
+
+        st.plotly_chart(px.bar(df, y='family'))
 
         # days with sliders, textarea
         '''
         ### Screen 4 : Expire stock within 10 days
         '''
-        # st.dataframe()
+
+
+        df_expire = df.loc[df['family_sales'] != 0].loc[df['family_sales'] <= 10]
+
+        st.dataframe(df_expire)
         # With selectbox of expire days (10, 9, ...)
 
 
@@ -264,12 +235,12 @@ if st.checkbox('Inv. efficient'):
     #     fig = px.line(df, x='date', y='family_sales', markers=True)
     #     return fig
 
-    st.write(df.sort_values('family_sales', ascending=False))
+    st.write(df.groupby(by='family').sum().sort_values('family_sales', ascending=False))
 
     # df.loc[df['family'] == 'GROCERY I'].loc[df['date'].dt.year == 2015]
 
 
-
+    @st.cache
     def inv_efficient_plotly(df):
         # see after to compare predict/real
         # fig = px.line(df, x="year", y="lifeExp", color='country')
