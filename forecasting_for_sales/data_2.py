@@ -64,7 +64,7 @@ def feature_date_engineer(df):
 # # Begin for data-preparation_for-preproc
 
 def clean_main_dataset(df):
-    df_sales['onpromotion'] = df_sales['onpromotion'].fillna(False)
+    df_sales['onpromotion'].fillna(value=0, inplace=True)
     df_sales.drop_duplicates(inplace=True)
     df_sales["unit_sales"] = np.where(df_sales['unit_sales'] < 0, 0, df_sales['unit_sales'])
     return df
@@ -306,7 +306,7 @@ def merge_df_holiday(df_sales, df_holiday):
     # Set to_datetime, important...
     df_holiday['date'] = pd.to_datetime(df_holiday['date'])
     df_sales['date'] = pd.to_datetime(df_sales['date'])
-    df_sales.drop(columns=['Unnamed: 0', 'id'], inplace=True)
+    #df_sales.drop(columns=['Unnamed: 0', 'id'], inplace=True)
 
     stores = pd.read_csv('../raw_data/stores.csv')
     df_sales = df_sales.merge(stores, how='left', on=['store_nbr', 'city', 'state', 'type', 'cluster'])
@@ -419,12 +419,15 @@ def encoder(data, encoder="ohe",):
     return data
 
 if __name__ == '__main__':
+
     start_time = time.time() #set the beginning of the timer for the execution
 
+
     # ----- LOADING MAIN DATASET -----
-    df_sales = load_csv('/all_products/train2016') # a remodifier avec le train entier jusqu'à fin 2016 ----------------------------------------
+    df_sales = load_csv('/train')
+    df_sales = df_sales.loc[df_sales['date']<'2017-01-01']
     df_sales = clean_main_dataset(df_sales)
-    df_sales = df_sales.loc[df_sales['store_nbr'] == 25] # test raccourci ----------------------------------------------------------------------
+
     df_sales = df_optimized(df_sales)
 
     # ----- PAD WITH DATE AND 0 UNITS WHEN NO UNIT SOLD -----
@@ -470,7 +473,7 @@ if __name__ == '__main__':
     #df_sales = encoder(df_sales)
 
 
-    df_sales.to_csv('../preprocessed_sales_grouped_25.csv', index=False)
+    df_sales.to_csv(f'../preprocessed_sales_grouped.csv', index=False)
     print("csv out")
 
 
