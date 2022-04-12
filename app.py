@@ -42,14 +42,14 @@ with expander_df:
         return pd.read_csv('raw_data/preprocessed_sales_grouped_21.csv')
 
     df = get_cached_data()
+    # df = df[df['date'].dt.year == 2017]
+
 
     option_head = st.slider('head : ', 1, 1000, 5)
     st.write(df.head(option_head))
 
 st.write('Min date: ', min(df['date']))
 st.write('Max date: ', max(df['date']))
-
-
 
 
 # Inventory Units (With + or -) %
@@ -128,43 +128,63 @@ with col_show1: # Columns 1
         '''
         # Plot with confidence interval - start
 
+        st.write('Something here, a Plot with confidence interval')
 
         # Plot with confidence interval - end
-        '''
-        ### Screen 1 : Product stock details
-        '''
-        # df[['date', 'items', 'family_sales']]
-        # [product, date, unit_hand, unit_order]
-        # if family_sales actual > or <, print 🔻 or ⬆
 
-        df_stock_details = df[['family', 'date', 'family_sales']]\
-                            .groupby(by='family').sum()
+        # -------------
+        # No need maybe
+        # -------------
 
-        # df_stock_details['date'] = pd.to_datetime(df_stock_details['date'])
+        # '''
+        # ### Screen 1 : Product stock details
+        # '''
+        # # df[['date', 'items', 'family_sales']]
+        # # [product, date, unit_hand, unit_order]
+        # # if family_sales actual > or <, print 🔻 or ⬆
 
-        # if df_stock_details['date'] ==
+        # df_stock_details = df[['family', 'date', 'family_sales']]\
+        #                     .groupby(by='family').sum()
 
-        st.dataframe(df_stock_details)
+        # # df_stock_details['date'] = pd.to_datetime(df_stock_details['date'])
+
+        # # if df_stock_details['date'] ==
+
+        # st.dataframe(df_stock_details)
+
+        # -------------
+        # No need maybe
+        # -------------
 
 
     if show_3: # InvTrend, InvEff (Pred, Real)
         '''
         ### Screen 3 : Inventory Trend
         '''
-        # Lines plots x=date y=family_sales
-        def display_time_series():
+        # Selectbox for year and family
+        sb_year_inv = st.selectbox('Year inv',
+                        range(min(df['date'].dt.year),
+                            max(df['date'].dt.year)))
+        sb_family_inv = st.selectbox('Family inv', df['family'].unique())
+
+        # Lines plots x=date y=family_sales by year by family
+        @st.cache(suppress_st_warning=True)
+        def display_time_series(df, sb_family_inv, year):
             # df = px.data.stocks() # replace with your own data source
-            fig = px.line(df, x='date', y='family_sales', markers=True)
+
+            df_family = df.loc[df['family'] == sb_family_inv]\
+                            .loc[df['date'].dt.year == year]
+            fig = px.line(df_family, x='date', y='family_sales', markers=True)
             return fig
 
-        st.plotly_chart(display_time_series())
+        st.plotly_chart(display_time_series(df, sb_family_inv, sb_year_inv))
 
 
 
 with col_show2: # Column 2
     if show_2: # top10, NeedProduct
         '''
-        ### Screen 2 : Top 10 of sales, inventories
+        ### Screen right : Top 10 of sales, inventories
         '''
         # add date to choose
         sb_year_top_10 = st.selectbox('Year',
@@ -183,39 +203,59 @@ with col_show2: # Column 2
         st.dataframe(show_top_10(df, sb_year_top_10))
 
         '''
-        ### Screen 2 : Needed product (Prod, Alert, Nb)
+        ### Screen right : Needed product (Prod, Alert, Nb)
         '''
+
+        def _color_red_or_green(val):
+            color = 'red' if val < 10 else 'green'
+            return 'color: %s' % color
+
         # Select store
         option = st.selectbox('Select a line to filter', df['store_nbr'].unique())
         df_store = df[df['store_nbr'] == option]
 
+        df_store['alert'] = (df_store['family_sales'] < 10)
+
+        # add colors
+        # df_store.style.apply(_color_red_or_green,
+        #                      subset='family_sales', axis=1)
         # By store
-        st.write(df_store)
+        st.dataframe(df_store[['family', 'alert', 'family_sales']])
 
 
     if show_4: # AvailableStock, ExpireStock
         '''
         ### Screen 4 : Available stock by family
         '''
-        sb_family = st.selectbox('Family', df['family'].unique())
-        df_family = df[df['family'] == sb_family]
 
-        # st.dataframe(df_family[['item_nbr', 'unit_sales']])
-        # Better with barplots
+        st.write('Add someting here, need item_nbr')
+        # Need item_nbr...
+        # sb_family_stock = st.selectbox('Family', df['family'].unique())
 
-        # st.plotly_chart(px.bar(df, y='item_nbr'))
+        # df_family = df[df['family'] == sb_family_stock]
+        # df_family = df[df['family'] == sb_family_stock]
+        # st.plotly_chart(px.bar(df_family,x='unit_sales' y='item_nbr'))
 
+
+        # -------------
+        # No need maybe
+        # -------------
+
+        # '''
+        # ### Screen 4 : Expire stock within 10 days
+        # '''
         # days with sliders, textarea
-        '''
-        ### Screen 4 : Expire stock within 10 days
-        '''
 
 
-        df_expire = df.loc[df['family_sales'] != 0]\
-                        .loc[df['family_sales'] <= 10][['family', 'family_sales']]
+        # df_expire = df.loc[df['family_sales'] != 0]\
+        #                 .loc[df['family_sales'] <= 10][['family', 'family_sales']]
 
-        st.dataframe(df_expire)
-        # With selectbox of expire days (10, 9, ...)
+        # st.dataframe(df_expire)
+        # # With selectbox of expire days (10, 9, ...)
+
+        # -------------
+        # No need maybe
+        # -------------
 
 
 if st.checkbox('Inv. efficient'):
@@ -238,13 +278,15 @@ if st.checkbox('Inv. efficient'):
     @st.cache
     def inv_efficient_plotly(df):
         # see after to compare predict/real
-        # fig = px.line(df, x="year", y="lifeExp", color='country')
+        # fig = px.line(df, x="date", y="family_sales", color='predict')
         # GROCERY I
 
-        
+        # test between 2 family
         df['date'] = pd.to_datetime(df['date'])
+        # df predict (diff with columns predict: True ?)
         df_one_family = df.loc[df['family'] == 'GROCERY I']\
                             .loc[df['date'].dt.year == 2015]
+        # df real
         df_second_family = df.loc[df['family'] == 'BEVERAGES']\
                                 .loc[df['date'].dt.year == 2015]
         df_compare = pd.concat([df_one_family, df_second_family])
