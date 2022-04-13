@@ -1,7 +1,6 @@
 # Import
 # from matplotlib.font_manager import get_fontconfig_fonts
 import streamlit as st
-import datetime
 import numpy as np
 import pandas as pd
 
@@ -23,7 +22,7 @@ st.set_page_config(
 # css style
 CSS = """
 h1 {
-    color: red;
+    color: orange;
 }
 .stApp {
     background-color: #2C2E43;
@@ -42,6 +41,7 @@ with expander_df:
         return pd.read_csv('raw_data/preprocessed_sales_grouped_21.csv')
 
     df = get_cached_data()
+    df['date'] = pd.to_datetime(df['date'])
     # df = df[df['date'].dt.year == 2017]
 
 
@@ -52,14 +52,9 @@ st.write('Min date: ', min(df['date']))
 st.write('Max date: ', max(df['date']))
 
 
-# regarder mois actuel (contre mois precedent)
-# comparer la somme des 2 family_sales
-# les afficher avec une perte ou un gain
-import datetime
-import dateutil.relativedelta
-
-d = datetime.datetime.strptime("2013-03-31", "%Y-%m-%d")
-d2 = d - dateutil.relativedelta.relativedelta(months=1)
+# check actual month (vs previous month)
+# compare sum 2 family_sales
+# show with deficit or benefit
 
 sb_month_unit = st.selectbox('Month Unit', range(min(df['date'].dt.month),
                                                 max(df['date'].dt.month)))
@@ -89,14 +84,9 @@ col1, col2 = st.columns(2)
 ui_actual_month, iu_past_month = inventory_unit(sb_month_unit, sb_year_unit)
 col1.metric("Sales Units", f"{ui_actual_month}", f"{iu_past_month}")
 
-# show family_sales for this month
-# compare previous months
-# df['family_sales']
-# df.loc[df['date'].dt.year == ]
-
 # In Progress
+# Need stock
 col2.metric("Inventory Units", "121.10", "0.46%")
-
 
 
 with st.sidebar:
@@ -104,128 +94,114 @@ with st.sidebar:
     # Forecast for sales
 
     ## Management inventory
+    ---
     '''
-    '------------------------'
-    '''
-    - Inventory days of supply
-    - Product stock details
-    '''
-    show_1 = st.checkbox('Show 1')
 
+
+    show_1 = st.checkbox('Show 1')
+    '''
+    - Needed product (Prod, Alert, Nb)
+    ---
+    '''
+
+    show_2 = st.checkbox('Show 2')
     '''
     - Top 10 of sales, inventories
-    - Needed product (Prod, Alert, Nb)
+    ---
     '''
-    show_2 = st.checkbox('Show 2')
 
+    show_3 = st.checkbox('Show 3')
     '''
     - Inventory Trend
-    - Inventory Efficient (Lines predict/Real)
+    ---
     '''
-    show_3 = st.checkbox('Show 3')
 
+    show_4 = st.checkbox('Show 4')
     '''
     - Available stock by Family
-    - Expire stock within 10 days
+    - Forecast Sales
+    ---
     '''
-    show_4 = st.checkbox('Show 4')
 
+    show_inv_eff = st.checkbox('Inv. efficient')
     '''
-    Mapping
+    - Inventory Efficient (Lines predict/Real)
     '''
-    mapping = st.checkbox('Show Map')
 
-# if show_plot:
-#     # Test directly plot
-#     # ------------------
-#     @st.cache
-#     def countplot_temp():
-#         # fig , axes = plt.subplots(2, 2, figsize=(15, 16))
-#         fig , axes = plt.subplots(1, 2, figsize=(15, 16))
-
-#         sns.countplot(ax=axes[0], data=df, y='family_sales',
-#                     order=df['family'].value_counts().index)\
-#                         .set_title('Countplot family of products')
-
-#         return fig
-
-#     st.pyplot(countplot_temp())
+    # '''
+    # Mapping
+    # '''
+    # mapping = st.checkbox('Show Map')
 
 
-
-col_show1, col_show2 = st.columns(2)
-with col_show1: # Columns 1
-    if show_1: # InvDaysSupply, ProdStockDetails
-        '''
-        ### Screen 1 : Inventory days of supply
-        '''
-        # Plot with confidence interval - start
-
-        st.write('Something here, a Plot with confidence interval')
-
-        # Plot with confidence interval - end
-
-        # -------------
-        # No need maybe
-        # -------------
-
-        # '''
-        # ### Screen 1 : Product stock details
-        # '''
-        # # df[['date', 'items', 'family_sales']]
-        # # [product, date, unit_hand, unit_order]
-        # # if family_sales actual > or <, print 🔻 or ⬆
-
-        # df_stock_details = df[['family', 'date', 'family_sales']]\
-        #                     .groupby(by='family').sum()
-
-        # # df_stock_details['date'] = pd.to_datetime(df_stock_details['date'])
-
-        # # if df_stock_details['date'] ==
-
-        # st.dataframe(df_stock_details)
-
-        # -------------
-        # No need maybe
-        # -------------
+col_left, col_right = st.columns(2)
+with col_left: # Columns left
+    if show_1: #  Needed product
 
 
-    if show_3: # InvTrend, InvEff (Pred, Real)
-        '''
-        ### Screen 3 : Inventory Trend
-        '''
+        '### Screen 1 left : Needed product (Prod, Alert, Nb)'
+
+        # color not functionnal
+        # def _color_red_or_green(val):
+        #     color = 'red' if val < 10 else 'green'
+        #     return 'color: %s' % color
+
+        # Select store - see after
+        # option = st.selectbox('Select a line to filter', df['store_nbr'].unique())
+        # df_store = df[df['store_nbr'] == option]
+        df_store = df
+
+        df_store = df_store[['family', 'family_sales']]\
+                            .groupby(by='family').sum()\
+                            .sort_values('family_sales', ascending=False)
+        df_store['alert'] = (df_store['family_sales'] <= 0)
+
+        # add colors
+        # df_store.style.apply(_color_red_or_green,
+        #                      subset='family_sales', axis=1)
+        # By store
+        st.dataframe(df_store[['alert', 'family_sales']])
+
+
+    if show_3: # InvTrend
+        '### Screen 3 left : Inventory Trend'
         # Selectbox for year and family
         sb_year_inv = st.selectbox('Year inv',
                         range(min(df['date'].dt.year),
                             max(df['date'].dt.year)))
         sb_family_inv = st.selectbox('Family inv', df['family'].unique())
 
-        # Lines plots x=date y=family_sales by year by family
-        @st.cache(suppress_st_warning=True)
+        @st.cache(suppress_st_warning=True, allow_output_mutation=True)
         def display_time_series(df, sb_family_inv, year):
             # df = px.data.stocks() # replace with your own data source
 
+            # x=date y=family_sales by year by family
             df_family = df.loc[df['family'] == sb_family_inv]\
                             .loc[df['date'].dt.year == year]
+            # Lines plots
             fig = px.line(df_family, x='date', y='family_sales', markers=True)
+            fig.update_layout(paper_bgcolor='#B2B1B9')
             return fig
+
 
         st.plotly_chart(display_time_series(df, sb_family_inv, sb_year_inv))
 
 
 
-with col_show2: # Column 2
-    if show_2: # top10, NeedProduct
+with col_right: # Column right
+    if show_2: # top10, AvailableStock, Forecast Sales
         '''
-        ### Screen right : Top 10 of sales, inventories
+        ### Screen 2 right : Top 10 of sales, inventories
         '''
         # add date to choose
         sb_year_top_10 = st.selectbox('Year',
                                 range(min(df['date'].dt.year),
                                     max(df['date'].dt.year)))
 
+        # Later to select meat, chicken, beef, etc.
+        # st.multiselect(label="", options=avg_wine_df.columns.tolist(), default=["alcohol","malic_acid"])
+
         def show_top_10(df, sb_year_top_10):
-            # df['date'] = pd.to_datetime(df['date'])
             df_in_date = df[df['date'].dt.year == sb_year_top_10]
             df_top_10 = df_in_date[['family', 'family_sales']].groupby(by='family')\
                                 .sum()\
@@ -235,34 +211,16 @@ with col_show2: # Column 2
 
         st.dataframe(show_top_10(df, sb_year_top_10))
 
+
+
+
+    if show_4: # AvailableStock, Forecast Sales
+        '### Screen right : Available stock by family'
+
         '''
-        ### Screen right : Needed product (Prod, Alert, Nb)
+        Add someting here
+        Need item_nbr if check 1 family...
         '''
-
-        def _color_red_or_green(val):
-            color = 'red' if val < 10 else 'green'
-            return 'color: %s' % color
-
-        # Select store
-        option = st.selectbox('Select a line to filter', df['store_nbr'].unique())
-        df_store = df[df['store_nbr'] == option]
-
-        df_store['alert'] = (df_store['family_sales'] < 10)
-
-        # add colors
-        # df_store.style.apply(_color_red_or_green,
-        #                      subset='family_sales', axis=1)
-        # By store
-        st.dataframe(df_store[['family', 'alert', 'family_sales']])
-
-
-    if show_4: # AvailableStock, ExpireStock
-        '''
-        ### Screen 4 : Available stock by family
-        '''
-
-        st.write('Add someting here, need item_nbr')
-        # Need item_nbr...
         # sb_family_stock = st.selectbox('Family', df['family'].unique())
 
         # df_family = df[df['family'] == sb_family_stock]
@@ -270,31 +228,57 @@ with col_show2: # Column 2
         # st.plotly_chart(px.bar(df_family,x='unit_sales' y='item_nbr'))
 
 
-        # -------------
-        # No need maybe
-        # -------------
 
-        # '''
-        # ### Screen 4 : Expire stock within 10 days
-        # '''
-        # days with sliders, textarea
+        '### Screen 4 right :  Forecast Sales'
+        # Plot with confidence interval - start
 
-
-        # df_expire = df.loc[df['family_sales'] != 0]\
-        #                 .loc[df['family_sales'] <= 10][['family', 'family_sales']]
-
-        # st.dataframe(df_expire)
-        # # With selectbox of expire days (10, 9, ...)
+        'Something here, a Plot with confidence interval'
 
         # -------------
         # No need maybe
         # -------------
 
+        # # Create a correct Training/Test split to predict the last 50 points
+        # train = df['linearized'][0:150]
+        # test = df['linearized'][150:]
 
-if st.checkbox('Inv. efficient'):
-    '''
-    ### Screen down : Inventory Efficient (Lines predict, Lines real)
-    '''
+        # # Build Model
+        # arima = ARIMA(train, order=(0, 1, 1))
+        # arima = arima.fit()
+
+        # # Forecast
+        # forecast, std_err, confidence_int = arima.forecast(len(test), alpha=0.05)  # 95% confidence
+
+        # -------------
+        # No need maybe
+        # -------------
+
+        def plot_forecast(fc, train, test, upper=None, lower=None):
+            is_confidence_int = isinstance(upper, np.ndarray) and isinstance(lower, np.ndarray)
+            # Prepare plot series
+            fc_series = pd.Series(fc, index=test.index)
+            lower_series = pd.Series(upper, index=test.index) if is_confidence_int else None
+            upper_series = pd.Series(lower, index=test.index) if is_confidence_int else None
+
+            # Plot
+            plt.figure(figsize=(10,4), dpi=100)
+            plt.plot(train, label='training', color='black')
+            plt.plot(test, label='actual', color='black', ls='--')
+            plt.plot(fc_series, label='forecast', color='orange')
+            if is_confidence_int:
+                plt.fill_between(lower_series.index, lower_series, upper_series, color='k', alpha=.15)
+            plt.title('Forecast vs Actuals')
+            plt.legend(loc='upper left', fontsize=8);
+
+        # Plot with confidence interval
+        # plot_forecast(forecast, train, test, confidence_int[:,0], confidence_int[:,1])
+
+        # Plot with confidence interval - end
+
+
+
+if show_inv_eff: # InvEff (Pred, Real)
+    '### Screen down : Inventory Efficient (Lines predict, Lines real)'
 
     # def display_time_series_2():
     #     # dataframe predicted
@@ -308,7 +292,7 @@ if st.checkbox('Inv. efficient'):
 
 
     # df.loc[df['family'] == 'GROCERY I'].loc[df['date'].dt.year == 2015]
-    @st.cache
+    @st.cache(suppress_st_warning=True, allow_output_mutation=True)
     def inv_efficient_plotly(df):
         # see after to compare predict/real
         # fig = px.line(df, x="date", y="family_sales", color='predict')
@@ -324,7 +308,7 @@ if st.checkbox('Inv. efficient'):
                                 .loc[df['date'].dt.year == 2015]
         df_compare = pd.concat([df_one_family, df_second_family])
 
-        # later, color to diff predict with real
+        # later, color= to diff predict with real
         fig_one = px.line(df_compare, x='date', y='family_sales', markers=True,
                           title='Inventory Efficient of application', color='family')
 
