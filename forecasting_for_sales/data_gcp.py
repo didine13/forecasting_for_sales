@@ -2,18 +2,20 @@ import joblib
 from google.cloud import storage
 from forecasting_for_sales.data import *
 from forecasting_for_sales.params import *
-from termcolor import colored
 import os
 from forecasting_for_sales.utils import *
-
+from termcolor import colored
 
 @simple_time_tracker
-def get_data_from_gcp(nrows=10000, optimize=False, **kwargs):
+def get_data_from_gcp(filename, nrows=None, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
     # Add Client() here
     client = storage.Client()
-    path = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}"
-    df = pd.read_csv(path, nrows=nrows)
+    path = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}/{filename}"
+    if nrows != None:
+        df = pd.read_csv(path, nrows=nrows)
+    else:
+        df = pd.read_csv(path)
     return df
 
 
@@ -39,6 +41,27 @@ def storage_upload_to_gcp(rm=False):
                   "green"))
     if rm:
         os.remove('model.joblib')
+
+
+def download_model_from_gcp(model_bucket, rm=False):
+
+    storage_client = storage.Client()
+    model_local=model_bucket
+    bucket = storage_client.get_bucket(BUCKET_NAME)
+
+    #select bucket file
+    storage_location = f"{STORAGE_LOCATION}/{model_bucket}"
+    blob = bucket.blob(storage_location)
+
+    #download that file and name it with 'local_name.joblib'
+    blob.download_to_filename(model_local)
+
+    #load that file from local file
+    job=joblib.load(model_local)
+
+    print(colored(f"=> {model_bucket}  loaded from gcp cloud storage under, to bucket {BUCKET_NAME} inside {storage_location}",
+                  "green"))
+    return job
 
 
 def save_model_locally(reg):
