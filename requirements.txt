@@ -35,3 +35,12 @@ termcolor
 # API
 fastapi
 uvicorn
+
+# app framework
+streamlit
+
+# plot
+datetime
+matplotlib
+seaborn
+plotly

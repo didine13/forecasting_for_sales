@@ -10,14 +10,9 @@ MODEL_VERSION = 'v1'
 
 BUCKET_NAME = 'wagon-data-835-forecasting-for-sales'
 
-BUCKET_TRAIN_DATA_PATH = 'data'
-#BUCKET_TRAIN_DATA_PATH = 'data/train.csv'
-STORAGE_LOCATION = 'models/forecasting_for_sales'
-BUCKET_STR1_DATA_PATH = 'data'
-BUCKET_STR2_DATA_PATH = 'data/preprocessed_sales_grouped_str2.csv'
+##### Data  - - - - - - - - - - - - - - - - - - - - - - - -
 
-
-### MLFLOW configuration - - - - - - - - - - - - - - - - - - -
-
-MLFLOW_URI = "https://mlflow.lewagon.ai/"
-EXPERIMENT_NAME = "[country] [city] [user] model + version"
+# train data file location
+# /!\ here you need to decide if you are going to train using the provided and uploaded data/train_1k.csv sample file
+# or if you want to use the full dataset (you need need to upload it first of course)
+BUCKET_TRAIN_DATA_PATH = 'data/train.csv'

@@ -43,30 +43,25 @@ def predict(date, store_nbr, family):
         #holidays = holidays_str2
         return {"error":"No holidays file"}
 
-    print(holidays_str1.dtypes)
-
     holidays = holidays[['date','is_open', 'is_special']].groupby('date').sum().reset_index()
     is_open = holidays.loc[holidays['date']==date]['is_open'].tolist()[0]
     is_special = holidays.loc[holidays['date']==date]['is_special'].tolist()[0]
 
-    if is_open >= 2 :
-        is_open = 1
-    if is_special >= 2:
-        is_special = 1
-
-    X_dict = pd.DataFrame({
-            'is_open': [int(is_open)],
-            'is_special': [int(is_special)],
-            'x0_DAIRY' : [0],
-            'x0_DELI': [0],
-            'x0_EGGS': [0],
-            'x0_MEATS': [0],
-            'x0_POULTRY': [0],
-            'x0_PREPARED FOODS': [0],
-            'x0_PRODUCE': [0],
-            'x0_SEAFOOD':[0],
-            'dcoilwtico':[0]
-    })
+    holidays['date'] = pd.to_datetime(holidays['date'])
+    holidays['year']= holidays['date'].dt.year
+    holidays = holidays[holidays['year'] == int(date[0:4])].reset_index().loc[0:19]
+    holidays["is_special"] = np.where(holidays['is_special'] >= 2, 1, holidays['is_special'])
+    holidays["is_open"] = np.where(holidays['is_open'] >= 2, 1, holidays['is_open'])
+    X_dict = holidays[['is_open','is_special']]
+    X_dict['x0_DAIRY']=0
+    X_dict['x0_DELI']=0
+    X_dict['x0_EGGS']=0
+    X_dict['x0_MEATS']=0
+    X_dict['x0_POULTRY']=0
+    X_dict['x0_PREPARED FOODS']=0
+    X_dict['x0_PRODUCE']=0
+    X_dict['x0_SEAFOOD']=0
+    X_dict['dcoilwtico']=0
 
     # load a model model.joblib trained according to store number and family
     model_name = f"model_{store_nbr}_x0_{family}.joblib"
@@ -93,7 +88,7 @@ def predict(date, store_nbr, family):
                               (proportion['month'] == int(pd.Series(pd.to_datetime(date)).dt.month))].drop(columns="Unnamed: 0").reset_index()
 
     family_forecast = pd.DataFrame(forecast)
-    family_forecast.head(len(family_forecast))
+    #family_forecast.head(len(family_forecast))
     family_items = proportion[(proportion['family'] == family) &
                               (proportion['month'] == int(pd.Series(pd.to_datetime(date)).dt.month))].drop(columns="Unnamed: 0").reset_index() \
                           .head(len(family_forecast))
@@ -105,7 +100,7 @@ def predict(date, store_nbr, family):
             "family_forecast" : json.dumps(forecast.tolist())
     }
 
-# date="2016-01-01"
-# family="BREAD/BAKERY"
-# store=1
-# print(predict(date, store, family))
+date="2016-01-01"
+family="BREAD/BAKERY"
+store=1
+print(predict(date, store, family))

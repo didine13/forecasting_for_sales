@@ -32,7 +32,3 @@ def RMSLE(y_true:np.ndarray, y_pred:np.ndarray) -> np.float64:
     implementation : E.M. (v.1 07/04/2022)
     """
     return np.sqrt(mean_squared_log_error(y_true, y_pred))
-
-
-def MAPE(y_true:np.ndarray, y_pred:np.ndarray) -> np.float64:
-  pass
